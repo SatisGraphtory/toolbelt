@@ -1,0 +1,36 @@
+{
+  "name": "@local/pak-tools",
+  "version": "1.0.0",
+  "license": "Apache-2.0",
+  "private": true,
+  "bin": {
+    "pak-parser": "./bin/pak-parser.ts"
+  },
+  "scripts": {
+    "build": "tsc --build tsconfig.json",
+    "watch": "tsc --build tsconfig.json --watch",
+    "pak-parser": "./node_modules/.bin/ts-node ./bin/pak-parser",
+    "dev-pak-parser": "./node_modules/.bin/ts-node ./dist/bin/pak-parser"
+  },
+  "devDependencies": {
+    "@types/node": "^13.11.0",
+    "express": "^4.17.1",
+    "ts-node": "^8.9.0",
+    "typescript": "^3.9.3"
+  },
+  "dependencies": {
+    "@types/sharp": "^0.25.0",
+    "@types/uuid": "^8.3.0",
+    "class-transformer": "^0.3.1",
+    "decode-dxt": "^1.0.1",
+    "dxt-js": "^0.0.3",
+    "express": "^4.17.1",
+    "hot-import": "^0.2.14",
+    "immer": "^6.0.9",
+    "jimp": "^0.10.3",
+    "pngjs": "^5.0.0",
+    "reflect-metadata": "^0.1.13",
+    "sharp": "^0.25.3",
+    "uuid": "^8.3.0"
+  }
+}

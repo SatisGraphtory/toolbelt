@@ -1,0 +1,257 @@
+// https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/PakFile/Public/IPlatformFilePak.h#L76-L92
+import {Shape} from "../util/parsers";
+import {FPakInfo, FPakInfoSize} from "./structs/FPakInfo";
+import {FPakEntry} from "./structs/FPakEntry";
+import {Reader} from "../readers/Reader";
+import {UnrealString} from "./primitive/strings";
+import {UInt32} from "./primitive/integers";
+import { ChildReader } from "../readers/ChildReader";
+import {Transform, Type} from "class-transformer";
+import path from "path";
+import {UAsset} from "./pakfile/UAsset";
+import {UExp} from "./pakfile/UExp";
+
+export enum PakVersion {
+  Initial = 1,
+  NoTimestamps = 2,
+  CompressionEncryption = 3,
+  IndexEncryption = 4,
+  RelativeChunkOffsets = 5,
+  DeleteRecords = 6,
+  EncryptionKeyGuid = 7,
+  FNameBasedCompressionMethod = 8,
+}
+
+export const LatestPakVersion = PakVersion.FNameBasedCompressionMethod;
+
+/**
+ * Parser and content of a .pak file.
+ *
+ * @see https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/PakFile/Public/IPlatformFilePak.h#L485-L488
+ */
+
+class Dummy {
+
+}
+
+export class PakFile {
+  info!: Shape<typeof FPakInfo>;
+  mountPoint!: string;
+  @Transform((v) => {
+    return new Map(Object.entries(v));
+  })
+  entries = new Map<string, Shape<typeof FPakEntry>>();
+  // assetFiles = new Map<string, UAssetFile>();
+  // expFiles = new Map<string, UExpFile>();
+  headerSize = Infinity;
+
+
+  public optimizeLoadFromFile(reader: Reader) {
+    this.reader = reader;
+    for (const entry of this.entries.values()) {
+      entry.hash = Buffer.from((entry.hash as any).data);
+    }
+  }
+
+  constructor(private reader: Reader) {}
+
+  /**
+   * Reads the file's info and index.
+   */
+  async initialize() {
+    this.info = await this.loadInfo();
+    await this.loadIndex();
+    await this.loadHeaderSize();
+  }
+
+  /**
+   * Reads the PakInfo struct from the end of the file
+   *
+   * @see https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/PakFile/Private/IPlatformFilePak.cpp#L4210-L4252
+   */
+  async loadInfo() {
+    let version = LatestPakVersion;
+    while (version > 0) {
+      this.reader.seekTo(-FPakInfoSize(version));
+      try {
+        return await this.reader.read(FPakInfo(version));
+      } catch (error) {
+        console.warn(`Failed loading PakInfo version ${version}:`, error);
+      }
+
+      version -= 1;
+    }
+
+    throw new Error(`Malformed .pak trailer (did not match any known PakInfo version)`);
+  }
+
+  /** Loads the header size **/
+  async loadHeaderSize() {
+    if (this.info.version < 8) {
+      this.headerSize = 53;
+    } else {
+      this.headerSize = 50;
+    }
+  }
+
+  /**
+   * Read the pak file's index, and load all PakEntries
+   *
+   * @see https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/PakFile/Private/IPlatformFilePak.cpp#L4254-L4356
+   */
+  async loadIndex() {
+    const { indexOffset, indexSize, indexHash } = this.info;
+
+    this.reader.seekTo(indexOffset);
+    await this.reader.checkHash('index', indexSize, indexHash);
+
+    this.mountPoint = await this.reader.read(UnrealString);
+
+    const numEntries = await this.reader.read(UInt32);
+
+    for (let i = 0; i < numEntries; i++) {
+      const filename = await this.reader.read(UnrealString);
+
+      const entry = await this.reader.read(FPakEntry);
+      this.entries.set(filename, entry);
+    }
+  }
+
+  /**
+   * Asserts whether an inline PakEntry matches its index PakEntry.
+   *
+   * @see https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/PakFile/Private/IPlatformFilePak.cpp#L4042-L4066
+   */
+  checkEntries(context: string, indexEntry: Shape<typeof FPakEntry>, inlineEntry: Shape<typeof FPakEntry>) {
+    if (indexEntry.size !== inlineEntry.size) {
+      throw new Error(`${context} is corrupt: size mismatch ${indexEntry.size} vs ${inlineEntry.size}`);
+    }
+
+    if (indexEntry.uncompressedSize !== inlineEntry.uncompressedSize) {
+      throw new Error(
+        `${context} is corrupt: uncompressedSize mismatch ${indexEntry.uncompressedSize} vs ${inlineEntry.uncompressedSize}`,
+      );
+    }
+
+    if (indexEntry.compressionMethodIndex !== inlineEntry.compressionMethodIndex) {
+      throw new Error(
+        `${context} is corrupt: compressionMethodIndex mismatch ${indexEntry.compressionMethodIndex} vs ${inlineEntry.compressionMethodIndex}`,
+      );
+    }
+
+    if (indexEntry.hash.compare(inlineEntry.hash) !== 0) {
+      throw new Error(`${context} is corrupt: hash mismatch`);
+    }
+  }
+  
+  /**
+   * Look up a specific file within the pak.
+   */
+  async getPakFile(filename: string) {
+    const entry = this.entries.get(filename);
+    if (!entry) return null;
+
+    // https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/PakFile/Public/IPlatformFilePak.h#L1251-L1284
+    this.reader.seekTo(entry.offset);
+    const header = await this.reader.read(FPakEntry);
+    this.checkEntries(filename, entry, header);
+
+    const reader = new ChildReader(this.reader, this.reader.position, entry.size);
+    await reader.checkHash(filename, entry.size, entry.hash);
+
+    return { filename, entry, reader };
+  }
+  
+  private async getUAsset(filename: string, packageFile: any) {
+    const assetFile = new UAsset(filename, packageFile.reader, packageFile.entry, this);
+    await assetFile.initialize();
+    return assetFile;
+  }
+
+  private async getPackageFile(filename: string) {
+    if (!this.entries.get(filename)) {
+      return null;
+    }
+
+    const packageFile = await this.getPakFile(filename);
+    if (!packageFile) return null;
+
+    return packageFile;
+  }
+
+  private async getPackage(path: string) {
+
+    const uexpPath = path + '.uexp';
+    const uexpPackageFile = await this.getPackageFile(uexpPath);
+
+    const uassetPath = path + '.uasset';
+    const uassetPackageFile = await this.getPackageFile(uassetPath);
+
+    if (!uexpPackageFile || !uassetPackageFile) {
+      throw new Error("Cannot get package without a uexp or uasset file");
+    }
+
+    const uassetFile = await this.getUAsset(uassetPath, uassetPackageFile);
+
+    const ubulkPath = path + '.ubulk';
+    const ubulkPackageFile = await this.getPackageFile(ubulkPath);
+
+    const uexpFile = new UExp(uassetFile, uexpPackageFile.reader, ubulkPackageFile?.reader);
+    await uexpFile.initialize();
+  }
+
+  async getFiles(files: string[]) {
+    for (const file of files) {
+      const splitFilename = file.split('.');
+      const extension = splitFilename.pop();
+      const filePath = splitFilename.join('.');
+      await this.getPackage(filePath);
+    }
+
+    // const basicFileSet = new Set<string>();
+    // const objectFileSet = new Set<string>();
+    // for (const file of files) {
+    //   // If we were called without a specific extension, just assume it is an object.
+    //   if (!file.includes('.')) {
+    //     objectFileSet.add(file);
+    //     continue;
+    //   }
+    //   const splitFilename = file.split('.');
+    //   const extension = splitFilename.pop();
+    //   switch (extension) {
+    //     case 'locmeta':
+    //       break;
+    //     case 'locres':
+    //       basicFileSet.add(`${splitFilename.join('.')}.${extension}`);
+    //       break;
+    //     case 'udic':
+    //       break;
+    //     case 'bin':
+    //       break;
+    //     case 'uasset':
+    //     case 'uexp':
+    //     case 'ubulk':
+    //       objectFileSet.add(splitFilename.join('.'));
+    //       break;
+    //     default:
+    //       break;
+    //   }
+    // }
+    //
+    // const returnedAssets = [] as UBaseFile[];
+    //
+    // let i = 1;
+    // const setLength = [...basicFileSet, ...objectFileSet].length;
+    // await asyncSetForEach(new Set([...basicFileSet, ...objectFileSet]), async (file: string) => {
+    //   process.stderr.write(
+    //     `Processing: ${Math.round((i / setLength) * 10000) / 100}% (${i++}/${setLength}) ${file}\n`,
+    //   );
+    //   const asset = await this.getUObject(file);
+    //   if (asset) {
+    //     returnedAssets.push(asset);
+    //   }
+    // });
+    //
+    // return returnedAssets;
+  }
+}

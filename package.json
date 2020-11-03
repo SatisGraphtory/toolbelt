@@ -1,0 +1,23 @@
+{
+  "name": "@satisgraphtory/tool-belt",
+  "version": "1.0.0",
+  "description": "Data processing toolchain for SatisGraphtory",
+  "repository": "https://github.com/SatisGraphtory/ToolBelt",
+  "author": "tehalexf",
+  "license": "Apache-2.0",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "pipeline/*"
+    ]
+  },
+  "scripts": {
+    "pak-parser": "ts-node --project ./pipeline/pak-tools/tsconfig.json ./pipeline/pak-tools/bin/pak-parser"
+  },
+  "dependencies": {
+    "ts-node": "^9.0.0"
+  },
+  "devDependencies": {
+    "yarn-run-all": "^3.1.1"
+  }
+}
