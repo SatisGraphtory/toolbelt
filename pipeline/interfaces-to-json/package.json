@@ -1,0 +1,14 @@
+{
+  "name": "@local/interfaces-to-json",
+  "version": "0.0.1",
+  "description": "Tool that converts the game's interfaces into JSON",
+  "license": "Apache-2.0",
+  "private": true,
+  "scripts": {
+    "interfaces-to-json": "../../node_modules/.bin/ts-node ./main"
+  },
+  "dependencies": {
+    "typescript-json-schema": "^0.42.0"
+  },
+  "devDependencies": {}
+}
