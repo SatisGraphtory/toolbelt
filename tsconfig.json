@@ -13,6 +13,5 @@
     "resolveJsonModule": true,
     "downlevelIteration": true
   },
-  "compileOnSave": true,
-  "include": ["src", "bin"]
+  "compileOnSave": true
 }

@@ -3,9 +3,9 @@ import * as fs from 'fs-extra';
 import * as glob from 'glob';
 import * as path from 'path';
 
-import { EmitContext, EmittableCategory, EntryCategory } from './emit';
-import { pretty } from './emit/util';
-import { parseHeader, printTokens } from './parse';
+import { EmitContext, EmittableCategory, EntryCategory } from '../emit';
+import { pretty } from '../emit/util';
+import { parseHeader, printTokens } from '../parse';
 
 const natives = path.resolve(__dirname, 'emit', 'native');
 

@@ -5,7 +5,8 @@
   "license": "Apache-2.0",
   "private": true,
   "scripts": {
-    "interfaces-to-json": "../../node_modules/.bin/ts-node ./main"
+    "interfaces-to-json": "../../node_modules/.bin/ts-node ./main",
+    "build": "tsc --build tsconfig.json"
   },
   "dependencies": {
     "typescript-json-schema": "^0.42.0"

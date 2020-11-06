@@ -13,10 +13,11 @@
   },
   "scripts": {
     "pak-parser": "ts-node --project ./pipeline/pak-tools/tsconfig.json ./pipeline/pak-tools/bin/pak-parser",
-    "headers-to-interfaces": "ts-node --project ./pipeline/headers-to-interfaces/tsconfig.json ./pipeline/headers-to-interfaces/main",
-    "interfaces-to-json": "ts-node --project ./pipeline/interfaces-to-json/tsconfig.json ./pipeline/interfaces-to-json/main",
+    "headers-to-interfaces": "ts-node --project ./pipeline/headers-to-interfaces/tsconfig.json ./pipeline/headers-to-interfaces/bin/headers-to-interfaces",
+    "interfaces-to-json": "ts-node --project ./pipeline/interfaces-to-json/tsconfig.json ./pipeline/interfaces-to-json/bin/interfaces-to-json",
     "checkout-source-data": "./scripts/checkout.sh SourceData",
-    "checkout-data-landing": "./scripts/checkout.sh DataLanding"
+    "checkout-data-landing": "./scripts/checkout.sh DataLanding",
+    "checkout": "yarn-run-all checkout-*"
   },
   "dependencies": {
     "ts-node": "^9.0.0"
