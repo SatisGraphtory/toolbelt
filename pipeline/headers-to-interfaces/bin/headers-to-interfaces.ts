@@ -1,3 +1,4 @@
+// @ts-ignore
 import { paths } from '@local/paths';
 import * as fs from 'fs-extra';
 import * as glob from 'glob';

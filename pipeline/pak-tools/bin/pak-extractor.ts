@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 import 'reflect-metadata';
 import * as fs from 'fs';
-import * as path from 'path';
 import {FileReader} from '../src/readers/FileReader';
 import {PakFile} from "../src/pak/PakFile";
 import {deserialize, serialize} from "class-transformer";
+import getAllRecipeFilenames from "../src/processor/steps/getAllRecipeFilenames";
+import getAllSchematicFilenames from "../src/processor/steps/getAllSchematicFilenames";
+import getDocs from "../src/processor/steps/getDocs";
 
 const DEFAULT_PAK_PATH = '/mnt/a/Games/Epic/SatisfactoryExperimental/FactoryGame/Content/Paks/FactoryGame-WindowsNoEditor.pak';
 
@@ -29,11 +31,15 @@ async function main() {
     await pakFile.initialize();
 
     let serializedPak = serialize(pakFile);
-    await fs.writeFileSync(cachedPakMetadata, serializedPak);
+    fs.writeFileSync(cachedPakMetadata, serializedPak);
   }
 
-  // now pakfile is not null;
+  const docs = await getDocs();
 
-  //
-  const retrievedFiles = await pakFile.getFiles(['FactoryGame/Content/FactoryGame/Buildable/Factory/PipelineMk2/Build_PipelineMK2.uasset']);
+  console.log(docs);
+
+  const fileNameList = Array.from(pakFile.entries.keys());
+
+  const recipeFiles = await getAllRecipeFilenames(fileNameList);
+  const schematicFiles = await getAllSchematicFilenames(fileNameList);
 }

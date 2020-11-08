@@ -30,10 +30,6 @@ export const LatestPakVersion = PakVersion.FNameBasedCompressionMethod;
  * @see https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/PakFile/Public/IPlatformFilePak.h#L485-L488
  */
 
-class Dummy {
-
-}
-
 export class PakFile {
   info!: Shape<typeof FPakInfo>;
   mountPoint!: string;

@@ -5,6 +5,7 @@ export const engineeringRoot = path.resolve(__dirname, '..', '..');
 export namespace sourceData {
   export const root = path.join(engineeringRoot, '.SourceData');
   export const headers = path.join(root, 'Headers');
+  export const docs = path.join(root, 'Docs');
 }
 
 export namespace dataLanding {

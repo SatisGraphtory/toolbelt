@@ -10,6 +10,7 @@
     "build": "tsc --build tsconfig.json",
     "watch": "tsc --build tsconfig.json --watch",
     "pak-parser": "./node_modules/.bin/ts-node ./bin/pak-parser",
+    "pak-extractor": "./node_modules/.bin/ts-node ./bin/pak-extractor",
     "dev-pak-parser": "./node_modules/.bin/ts-node --project tsconfig.json ./dist/bin/pak-parser"
   },
   "devDependencies": {
