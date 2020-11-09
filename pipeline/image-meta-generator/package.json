@@ -24,7 +24,7 @@
     "standard-json": "^1.0.2"
   },
   "dependencies": {
-    "@types/lodash": "^4.14.164",
+    "@types/lodash": "^4.14.165",
     "bluebird": "^3.5.0",
     "chokidar": "^3.4.3",
     "dashdash": "^2.0.0",
