@@ -77,9 +77,9 @@ function parseAll(sourceDir = paths.dataLanding.interfaces, destDir = paths.data
       }
 
       indexLines.push(
-        `import ${path.parse(child).name + 'JSON'} from './${path.basename(child)}';\nexport { ${path.parse(
+        `import ${path.parse(child).name} from './${path.basename(child)}';\nexport { ${path.parse(
           child,
-        ).name + 'JSON'} };`,
+        ).name} };`,
       );
     }
 
@@ -104,9 +104,9 @@ function parseAll(sourceDir = paths.dataLanding.interfaces, destDir = paths.data
       const schemaString = JSON.stringify(shallowClone(schema), null, 2);
 
       nativeIndexLines.push(
-        `import ${path.parse(newPath).name + 'JSON'} from './${path.basename(
+        `import ${path.parse(newPath).name} from './${path.basename(
           newPath,
-        )}';\nexport { ${path.parse(newPath).name + 'JSON'} };`,
+        )}';\nexport { ${path.parse(newPath).name} };`,
       );
 
       process.stderr.write(`\u001b[2Kconverting: ${newPath}\r`);

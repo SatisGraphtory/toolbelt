@@ -21,5 +21,7 @@ jobs:
           node-version: '12.x'
       - name: Install Dependencies
         run: yarn install
+      - name: Checkout Child Repos
+        run: yarn run checkout
       - name: Build all
         run: yarn workspaces run build

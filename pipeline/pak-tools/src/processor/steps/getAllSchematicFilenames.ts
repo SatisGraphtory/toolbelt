@@ -6,6 +6,8 @@ async function getAllSchematicFilenames(pakEntries: string[]) {
       schematicFiles.add(file);
     }
   }
+
+  return [...schematicFiles];
 }
 
 export default getAllSchematicFilenames;

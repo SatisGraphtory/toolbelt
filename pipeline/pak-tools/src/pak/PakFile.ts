@@ -9,7 +9,9 @@ import { ChildReader } from "../readers/ChildReader";
 import {Transform, Type} from "class-transformer";
 import path from "path";
 import {UAsset} from "./pakfile/UAsset";
-import {UExp} from "./pakfile/UExp";
+import {UObject} from "./pakfile/UObject";
+import {asyncArrayForEach, asyncSetForEach} from "../util/asyncEnumerators";
+import {FObjectExport} from "./structs/file/FObjectExport";
 
 export enum PakVersion {
   Initial = 1,
@@ -33,17 +35,19 @@ export const LatestPakVersion = PakVersion.FNameBasedCompressionMethod;
 export class PakFile {
   info!: Shape<typeof FPakInfo>;
   mountPoint!: string;
-  @Transform((v) => {
-    return new Map(Object.entries(v));
-  })
+
   entries = new Map<string, Shape<typeof FPakEntry>>();
   // assetFiles = new Map<string, UAssetFile>();
   // expFiles = new Map<string, UExpFile>();
   headerSize = Infinity;
 
+  packageCache = new Map<string, UObject>();
 
   public optimizeLoadFromFile(reader: Reader) {
     this.reader = reader;
+    this.entries = new Map(Object.entries(this.entries));
+    this.packageCache = new Map<string, UObject>();
+
     for (const entry of this.entries.values()) {
       entry.hash = Buffer.from((entry.hash as any).data);
     }
@@ -148,11 +152,17 @@ export class PakFile {
     if (!entry) return null;
 
     // https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/PakFile/Public/IPlatformFilePak.h#L1251-L1284
-    this.reader.seekTo(entry.offset);
-    const header = await this.reader.read(FPakEntry);
+    const headerReader = new ChildReader(this.reader, entry.offset, Infinity);
+
+    //
+    //
+    // this.reader.seekTo(entry.offset);
+    // const header = await this.reader.read(FPakEntry);
+
+    const header = await headerReader.read(FPakEntry);
     this.checkEntries(filename, entry, header);
 
-    const reader = new ChildReader(this.reader, this.reader.position, entry.size);
+    const reader = new ChildReader(headerReader, headerReader.position, entry.size);
     await reader.checkHash(filename, entry.size, entry.hash);
 
     return { filename, entry, reader };
@@ -176,6 +186,10 @@ export class PakFile {
   }
 
   private async getPackage(path: string) {
+    if (this.packageCache.has(path)) {
+      console.log("FOUND PACKAGE IN CACHE");
+      return this.packageCache.get(path)!
+    }
 
     const uexpPath = path + '.uexp';
     const uexpPackageFile = await this.getPackageFile(uexpPath);
@@ -192,62 +206,69 @@ export class PakFile {
     const ubulkPath = path + '.ubulk';
     const ubulkPackageFile = await this.getPackageFile(ubulkPath);
 
-    const uexpFile = new UExp(uassetFile, uexpPackageFile.reader, ubulkPackageFile?.reader);
-    await uexpFile.initialize();
+    // UExp is just a collection of exports, which is why we would rather just roll that into the UObject.
+
+    const uObjectFile = new UObject(uassetFile, uexpPackageFile.reader, ubulkPackageFile?.reader);
+    await uObjectFile.initialize();
+
+    this.packageCache.set(path, uObjectFile);
+
+    return uObjectFile;
   }
 
   async getFiles(files: string[]) {
+    const basicFileSet = new Set<string>();
+    const uAssetFileSet = new Set<string>();
+
     for (const file of files) {
+      if (!file.includes('.')) {
+        uAssetFileSet.add(file);
+        continue;
+      }
+
       const splitFilename = file.split('.');
       const extension = splitFilename.pop();
-      const filePath = splitFilename.join('.');
-      await this.getPackage(filePath);
+      switch (extension) {
+        case 'locmeta':
+          break;
+        case 'locres':
+          basicFileSet.add(`${splitFilename.join('.')}.${extension}`);
+          break;
+        case 'udic':
+          break;
+        case 'bin':
+          break;
+        case 'uasset':
+        case 'uexp':
+        case 'ubulk':
+          uAssetFileSet.add(splitFilename.join('.'));
+          break;
+        default:
+          break;
+      }
     }
 
-    // const basicFileSet = new Set<string>();
-    // const objectFileSet = new Set<string>();
-    // for (const file of files) {
-    //   // If we were called without a specific extension, just assume it is an object.
-    //   if (!file.includes('.')) {
-    //     objectFileSet.add(file);
-    //     continue;
-    //   }
-    //   const splitFilename = file.split('.');
-    //   const extension = splitFilename.pop();
-    //   switch (extension) {
-    //     case 'locmeta':
-    //       break;
-    //     case 'locres':
-    //       basicFileSet.add(`${splitFilename.join('.')}.${extension}`);
-    //       break;
-    //     case 'udic':
-    //       break;
-    //     case 'bin':
-    //       break;
-    //     case 'uasset':
-    //     case 'uexp':
-    //     case 'ubulk':
-    //       objectFileSet.add(splitFilename.join('.'));
-    //       break;
-    //     default:
-    //       break;
-    //   }
-    // }
-    //
-    // const returnedAssets = [] as UBaseFile[];
-    //
-    // let i = 1;
-    // const setLength = [...basicFileSet, ...objectFileSet].length;
-    // await asyncSetForEach(new Set([...basicFileSet, ...objectFileSet]), async (file: string) => {
-    //   process.stderr.write(
-    //     `Processing: ${Math.round((i / setLength) * 10000) / 100}% (${i++}/${setLength}) ${file}\n`,
-    //   );
-    //   const asset = await this.getUObject(file);
-    //   if (asset) {
-    //     returnedAssets.push(asset);
-    //   }
-    // });
-    //
-    // return returnedAssets;
+    if (basicFileSet.size) {
+      throw new Error("Unsupported files to get (basicFileSet)")
+    }
+
+    const numFilesToGet = uAssetFileSet.size;
+    let i = 0;
+
+    const promises = [...uAssetFileSet].map(filePath => {
+      return this.getPackage(filePath);
+    });
+
+    const allFetches = Promise.all(promises);
+
+    let progress = 0;
+    promises.forEach(p => p.then((result) => {
+      progress++;
+      process.stderr.write(
+        `Processing: ${Math.round((progress / numFilesToGet) * 10000) / 100}% (${progress}/${numFilesToGet}) ${result.uasset.filename}\n`,
+      );
+    }));
+
+    return allFetches.then((values) => values);
   }
 }

@@ -6,12 +6,16 @@ import {FileReader} from '../src/readers/FileReader';
 import {PakFile} from "../src/pak/PakFile";
 import {deserialize, serialize} from "class-transformer";
 
-const DEFAULT_PAK_PATH = '/mnt/a/Games/Epic/SatisfactoryExperimental/FactoryGame/Content/Paks/FactoryGame-WindowsNoEditor.pak';
+const DEFAULT_INSTALL_DIR = '/mnt/a/Games/Epic/SatisfactoryExperimental';
+
+const DEFAULT_PAK_PATH = DEFAULT_INSTALL_DIR + '/FactoryGame/Content/Paks/FactoryGame-WindowsNoEditor.pak';
+// const DEFAULT_EXE_PATH = DEFAULT_INSTALL_DIR + '/FactoryGame.exe';
 
 main();
 
 async function main() {
   const pakFilePath = process.env.PAK_PATH || DEFAULT_PAK_PATH;
+  // const exeFilePath = process.env.EXE_PATH || DEFAULT_EXE_PATH;
 
   const cachedPakMetadata: string = "./pak-dump";
 
@@ -35,5 +39,5 @@ async function main() {
   // now pakfile is not null;
 
   //
-  const retrievedFiles = await pakFile.getFiles(['FactoryGame/Content/FactoryGame/Buildable/Factory/PipelineMk2/Build_PipelineMK2.uasset']);
+  const retrievedFiles = await pakFile.getFiles(['FactoryGame/Content/FactoryGame/Schematics/Alternate/New_Update3/Schematic_Alternate_AdheredIronPlate.uasset']);
 }
