@@ -15,11 +15,11 @@
   "devDependencies": {},
   "dependencies": {
     "@node-steam/vdf": "^2.1.0",
-    "@types/luxon": "^1.25.0",
+    "@types/luxon": "^1.26.1",
     "@types/node-fetch": "^2.5.7",
-    "exiftool-vendored": "^12.2.0",
+    "exiftool-vendored": "^14.0.0",
     "node-fetch": "^2.6.1",
-    "node-html-parser": "^2.0.0",
-    "ts-node": "^9.0.0"
+    "node-html-parser": "^3.0.4",
+    "ts-node": "^9.1.1"
   }
 }
