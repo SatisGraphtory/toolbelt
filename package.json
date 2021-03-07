@@ -17,7 +17,7 @@
     "interfaces-to-json": "ts-node --project ./pipeline/interfaces-to-json/tsconfig.json ./pipeline/interfaces-to-json/bin/interfaces-to-json",
     "checkout-source-data": "./scripts/checkout.sh SourceData",
     "checkout-data-landing": "./scripts/checkout.sh DataLanding",
-    "checkout": "yarn-run-all checkout-*"
+    "checkout": "npm-run-all checkout-*"
   },
   "dependencies": {
     "ts-node": "^9.0.0",
