@@ -13,6 +13,7 @@ export namespace dataLanding {
   // export const data = path.join(root, 'data');
   export const interfaces = path.join(root, 'interfaces');
   export const json = path.join(root, 'json');
+  export const objects = path.join(root, 'objects');
 }
 
 export namespace dataWarehouse {

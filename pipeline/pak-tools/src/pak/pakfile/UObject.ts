@@ -5,9 +5,12 @@
 import {UAsset} from "./UAsset";
 import {Reader} from "../../readers/Reader";
 import {UExports} from "./UExports";
+import {v4 as uuidv4} from "uuid";
 
 export class UObject {
   constructor(public uasset: UAsset, private uexpReader: Reader, private ubulkReader?: Reader) {}
+
+  public readonly uuid: string = uuidv4();
 
   public uexports: UExports[] = [];
 

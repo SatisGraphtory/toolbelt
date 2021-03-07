@@ -1,5 +1,11 @@
+import {Marshaller} from "../marshaller/marshaller";
+import {Shape} from "../../util/parsers";
+import {FPropertyTag} from "../../pak/structs/UScript/FPropertyTag";
+import {UObject} from "../../pak/pakfile/UObject";
+import {PakFile} from "../../pak/PakFile";
+import util from 'util';
 
-function resolveReferenceName(baseObject: UObject, blueprintName: string) {
+export function resolveReferenceName(baseObject: UObject, blueprintName: string, pakFile: PakFile) {
   const imports = baseObject.uasset.imports.filter(imp => imp.objectName === blueprintName || imp.className === blueprintName);
   if (imports.length === 0) {
     console.log('Might want to check this, this might actually be className instead? ' + blueprintName);
@@ -26,6 +32,8 @@ function resolveReferenceName(baseObject: UObject, blueprintName: string) {
     }
   }
 
+  // console.log("CORRECT IMPORT", util.inspect(correctImport, false, null, true ) )
+
   const marshaller = new Marshaller();
   const fakeTag = ({
     tag: {
@@ -33,6 +41,13 @@ function resolveReferenceName(baseObject: UObject, blueprintName: string) {
     },
   } as unknown) as Shape<typeof FPropertyTag>;
   marshaller.marshalClassReference(fakeTag);
+
+  // if (marshaller.getDependencies()[0] === 'FactoryGame/Content/FactoryGame/Buildable/Factory/ConveyorBeltMk1/Build_ConveyorBeltMk1') {
+  //   if (blueprintName === 'Build_ConveyorBeltMk1_C') {
+  //   //   if (blueprintName === 'SplineComponent') {
+  //     throw new Error("F!!!!!!!");
+  //   }
+  // }
 
   return marshaller.getDependencies()[0];
 }

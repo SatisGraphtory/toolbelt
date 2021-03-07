@@ -81,6 +81,8 @@ export class UAsset {
 
   // https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/CoreUObject/Private/UObject/LinkerLoad.cpp#L1681-L1707
   async loadExports() {
+
+    // TODO: should we fix this based on https://github.com/gildor2/UEViewer/blob/d8b0d6d7f075e9f00e90290f19e4311f16ea589a/Unreal/UnrealPackage/UnPackage.cpp#L944?
     const { exportOffset, exportCount } = this.summary;
     if (!exportOffset || !exportCount) return;
 

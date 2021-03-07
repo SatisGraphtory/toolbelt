@@ -187,7 +187,6 @@ export class PakFile {
 
   private async getPackage(path: string) {
     if (this.packageCache.has(path)) {
-      console.log("FOUND PACKAGE IN CACHE");
       return this.packageCache.get(path)!
     }
 

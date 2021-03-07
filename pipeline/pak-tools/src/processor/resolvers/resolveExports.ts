@@ -2,13 +2,13 @@ import {PakFile} from "../../pak/PakFile";
 import {UObject} from "../../pak/pakfile/UObject";
 import {produce} from 'immer';
 import {inheritanceMap} from '../../../../../.DataLanding/interfaces'
-import {findPossibleClasses, getJsonForObject, getJsonForObjectStrict} from "../loader/jsonLoader";
-import exp from "constants";
+import {findPossibleClasses, getJsonForObject} from "../loader/jsonLoader";
 import {resolveReferenceName} from "./resolveReferences";
-import {sanitizeDependencies} from "./resolveDependencies";
-import {UExports} from "../../pak/pakfile/UExports";
+import {dependencyExists, sanitizeDependencies} from "./resolveDependencies";
 import {NameMap} from "../../pak/structs/UScript/FName";
-import {WritableDraft} from "immer/dist/types/types-external";
+import {resolvePropertyListMerges} from "./resolvePropertyListMerges";
+import util from "util";
+import {UExports} from "../../pak/pakfile/UExports";
 
 function isDefinedClass(cls: string) {
   //////// This section is to see if we can deprecate getJsonForObject ////////
@@ -29,26 +29,6 @@ function isDefinedClass(cls: string) {
   return isInInheritanceMap || isJSON;
 }
 
-
-function isStrictlyDefinedClass(cls: string) {
-  //////// This section is to see if we can deprecate getJsonForObject ////////
-  let isJSON = true;
-  try {
-    getJsonForObjectStrict(cls)
-  } catch (e) {
-    isJSON = false;
-  }
-
-  const isInInheritanceMap = (inheritanceMap as any)[cls] !== undefined
-
-  // Doesn't work if it isn't inherited. TODO: Experiment if we can just solely rely on isJSON
-  // if (isInInheritanceMap !== isJSON) {
-  //   throw new Error(`Mismatch response for isJson for ${cls}, isJSON: ${isJSON}, inheritanceMap: ${isInInheritanceMap}` );
-  // }
-
-  return isInInheritanceMap || isJSON;
-}
-
 const resolvedExportsCache = new Map<string, any>();
 
 export const unresolvedExports = new Set();
@@ -58,13 +38,9 @@ function resolveExportType(exportType: string, names: NameMap, propertySet: Set<
 
   let found = false;
 
+  // TODO: check pak files to make sure that the export type isn't already exported direclty
 
-  const possibleTypes = findPossibleClasses(propertySet);
-
-  if (possibleTypes.length === 1) {
-    returnedType = possibleTypes[0];
-    found = true;
-  }
+  // TODO: a list of native export types that include things like StructProperty.
 
   const uFGName = exportType.replace(/^BP_/g, 'UFG').replace(/_C$/g, '');
   if (!found && isDefinedClass(uFGName)) {
@@ -78,309 +54,190 @@ function resolveExportType(exportType: string, names: NameMap, propertySet: Set<
     found = true
   }
 
-  if (!found && /^[A-Z]+_(.*)_C$/.test(exportType)) {
-    // Hack to transform everything into a 'BP' type object, like 'BPD_'
-    const newExportType = `BP_${exportType.match(/^[A-Z]+_(.+)_C$/)![1]}_C`;
+  // TODO: Might be redundant
+  const secondUFGName = exportType.replace(/^FG/g, 'UFG').replace(/_C$/g, '');
+  if (!found && isDefinedClass(secondUFGName)) {
+    returnedType = secondUFGName;
+    found = true
+  }
 
-    const prefixedExportType = resolveExportType(newExportType, names, propertySet)
-    if (prefixedExportType !== newExportType) {
-      returnedType = prefixedExportType;
-      found = true
+  if (!found && /^[A-Z]+_(.*)_C$/.test(exportType)) {
+    const match = exportType.match(/^([A-Z]+)_(.+)_C$/)!
+    if (match[1] !== 'BP') {
+
+      // Hack to transform everything into a 'BP' type object, like 'BPD_'
+      const newExportType = `BP_${match[2]}_C`;
+      const {resolvedType: prefixedExportType, found: wasFound} = resolveExportType(newExportType, names, propertySet)
+      if (wasFound) {
+        returnedType = prefixedExportType;
+        found = true
+      }
     }
   }
 
-  // We have to manually resolve it now.
-  // TODO: remove this dev whitelist when everything is sorted
-  const dev_blacklist = new Set(['BlueprintGeneratedClass']);
+  if (!found) {
+    // Use brute force;
+    const possibleTypes = findPossibleClasses(propertySet);
+
+    if (possibleTypes.length === 1) {
+      returnedType = possibleTypes[0];
+      found = true;
+    }
+  }
 
   if (!found) {
     unresolvedExports.add(exportType)
-    //TODO: Should we check named exports?
-    // console.log("DFDSF");
-    // for (const exportName of names) {
-    //   console.log(exportName.name);
-    //   if (isDefinedClass(exportName.name) && exportName.name.includes(exportType)) {
-    //     returnedType = exportName.name;
-    //     found = true;
-    //     break;
-    //   }
-    // }
-    //
-    // if (!found) {
-    //   throw new Error("Type needs manual resolution: " + exportType)
-    // } else {
-    //   // TODO: remove this along with above
-    //   console.log(originalExport);
-    //   throw new Error("We came in at " + exportType + " but ended up with " + returnedType)
-    // }
   }
 
-  if (exportType === 'ResearchTreeNode') {
-    console.log(returnedType, found);
-    throw new Error("DSFFSDFFSD");
-  }
-
-  return returnedType;
+  return {resolvedType: returnedType, found};
 }
 
-export async function resolveExports(pakFile: PakFile, baseObject: UObject, docObjects: Map<string, Map<string, any>>) {
+export async function findMainClass(exports: UExports[]) {
+  if (!exports.length) return null;
+  // We don't want to filter
+  const exportTypes = exports.map((item: any) => item.exportTypes);
+  // The actual instances comes after the BlueprintGeneratedClass.
+  const index = exportTypes.indexOf('BlueprintGeneratedClass');
+  if (index + 1 < exportTypes.length && index >= 0) {
+    return exports[index + 1]
+  }
+
+  return exports[0];
+}
+
+// https://github.com/EpicGames/UnrealEngine/blob/f8f4b403eb682ffc055613c7caf9d2ba5df7f319/Engine/Source/Runtime/Engine/Private/BlueprintGeneratedClass.cpp#L612
+// https://github.com/EpicGames/UnrealEngine/blob/f8f4b403eb682ffc055613c7caf9d2ba5df7f319/Engine/Source/Runtime/Engine/Private/BlueprintGeneratedClass.cpp#L415
+export async function resolveExports(pakFile: PakFile, baseObject: UObject, depth = 0) {
   if (resolvedExportsCache.has(baseObject.uuid)) {
     return resolvedExportsCache.get(baseObject.uuid)!;
   }
 
-  const propertyListsToMerge: any[] = [];
+  let numInnerExports = 0;
+  const propertiesToMerge: any[] = [];
 
-  const innerExportsByUuid: Map<String, any[]> = new Map();
-  const definedClassInstanceUuids: Set<String> = new Set();
-
-  const filename = baseObject.uasset.filename;
   const filteredExports = await produce(
-    // Don't use BPGC
-    baseObject.uexports.filter(exp => exp.exportTypes !== 'BlueprintGeneratedClass'),
+    // Don't use BPGC?     // .filter(exp => exp.exportTypes !== 'BlueprintGeneratedClass'),
+    baseObject.uexports,
     async function (draftState) {
-      for (const originalExport of draftState) {
+      let currentIndex = 0;
+      while(currentIndex < draftState.length) {
+        const originalExport = draftState[currentIndex];
+        currentIndex++;
 
         const exportType = originalExport.exportTypes;
 
-        const originalPropertySet = new Set(originalExport.propertyList.map(property => (property ? property.name : '')).filter(property => property));
+        // originally !isStrictlyDefinedClass(resolvedExportType), which means if it WAS an instance like Build_conveyer
+        // and not FGComponentConnection
+        // But now we just check if a file with the name of this exists
+        if (dependencyExists(pakFile, exportType)) {
 
-        const resolvedExportType = resolveExportType(originalExport.exportTypes, originalExport.asset.names, originalPropertySet);
+          const originalPropertySet = new Set(originalExport.propertyList.map(property => (property ? property.name : '')).filter(property => property));
 
+          const {resolvedType: resolvedExportType, found: typeWasFound} = resolveExportType(originalExport.exportTypes, originalExport.asset.names, originalPropertySet);
 
-        // TODO: Delete this when investigation is finished
-        const debugPropertyLists = new Set(['SceneComponent', 'StructProperty'])
-        if (debugPropertyLists.has(resolvedExportType) && originalExport.propertyList.length) {
-          console.log(originalExport.propertyList)
-          throw new Error("Debug here for structProperty");
-        }
+          const referencedPakFile = resolveReferenceName(baseObject, exportType, pakFile);
 
-        console.log(resolvedExportType, isStrictlyDefinedClass(resolvedExportType));
-        // If We can't guess the type of export this is
-        if (!isStrictlyDefinedClass(resolvedExportType)) {
-          const referencedPakFile = resolveReferenceName(baseObject, exportType);
-
-          console.log(referencedPakFile)
-
-          const referencedFile = (
+          const referencedFileList = (
             await pakFile.getFiles([...sanitizeDependencies(pakFile, new Set([referencedPakFile]))])
           ).filter(item => {
             return item instanceof UObject;
           }) as UObject[];
 
-          if (!referencedFile.length) {
-            console.log("No file", referencedFile, referencedPakFile, [...sanitizeDependencies(pakFile, new Set([referencedPakFile]))]);
-            const resolvedExportType = resolveExportType(originalExport.exportTypes, originalExport.asset.names, originalPropertySet);
-
-            const originalType = originalExport.exportTypes;
-            if (resolvedExportType !== null && resolvedExportType !== originalExport.exportTypes) {
-              originalExport.exportTypes = resolvedExportType as string;
-              console.log("Transformed", originalType, "into", originalExport.exportTypes)
+          if (!referencedFileList.length) {
+            if (!referencedPakFile.startsWith('/Script/')) {
+              console.warn("No file found for", referencedPakFile, " and export set to", originalExport.exportTypes);
             }
+
+            if (resolvedExportType !== null && typeWasFound) {
+              originalExport.exportTypes = resolvedExportType as string;
+              console.log("Transformed", exportType, "into", originalExport.exportTypes)
+            }
+            throw new Error("WHAT");
           } else {
-            console.log("yes file");
-            /// Debug step
+            numInnerExports++;
+
+            const exportFile = referencedFileList[0];
+
             // TODO: Remove debug step
             unresolvedExports.delete(resolvedExportType);
-            ///
 
-            for (const exportFile of referencedFile) {
-              const innerExports = (await resolveExports(pakFile, exportFile, docObjects)).filter(
-                (exp: any) => exp.exportTypes !== 'BlueprintGeneratedClass'
-              );
+            const innerExports = await resolveExports(pakFile, exportFile, depth + 1);
 
-              if (innerExports.length === 0) {
-                // Guessing time!
-                const resolvedExportType = resolveExportType(originalExport.exportTypes, exportFile.uasset.names, originalPropertySet);
-                originalExport.exportTypes = resolvedExportType as string;
+            if (innerExports.length === 0) {
 
-                console.log(exportType, resolvedExportType)
-                // TODO: delete this debug
-                throw new Error("InnerExports debug error")
-              } else {
-                if (innerExports.length > 1) {
-                  console.log(originalExport.exportTypes)
-                  console.log(innerExports.map((item: any) => item.exportTypes));
-                  throw new Error("More than one innerExport")
-                }
+              console.log(exportType, resolvedExportType)
+              // TODO: delete this
+              throw new Error("InnerExports had no exports!")
+            }
 
-                const innerExport = innerExports[0]!;
+            // We don't want to filter
+            const innerExportTypes = innerExports.map((item: any) => item.exportTypes);
+            // The actual instances comes after the BlueprintGeneratedClass.
+            const instanceIndex = innerExportTypes.indexOf('BlueprintGeneratedClass');
 
-                propertyListsToMerge.push(innerExports);
-                definedClassInstanceUuids.add(originalExport.uuid);
-                innerExportsByUuid.set(originalExport.uuid, innerExports);
-                // // Swaparoo
-                originalExport.exportTypes = innerExport.exportTypes;
+            if (instanceIndex === -1) {
+              console.log(exportType, innerExportTypes)
+              // Everything should have BPG?
+              throw new Error("Should have BGC")
+            } else {
+              if ((instanceIndex + 1) >= innerExports.length) {
+                console.log(innerExports)
+                throw new Error("Too many umports, no bgc")
               }
+
+              const mainInnerProperty = innerExports[instanceIndex + 1]!;
+
+              // Merge the main property now, and the other properties rn?
+
+              const combinedPropertyList = await resolvePropertyListMerges(mainInnerProperty.propertyList, originalExport.propertyList)
+
+              originalExport.exportTypes = mainInnerProperty.exportTypes;
+              originalExport.propertyList = combinedPropertyList;
+
+              const innerOtherProperties = innerExports.slice(instanceIndex + 2);
+              propertiesToMerge.push([currentIndex, innerOtherProperties])
+
+              // To be honest I have no idea how to resolve these blueprint type things, especially since
+              // the properties overlap.
+              // I tried looking at the docs but they use some kind of default object we don't necessarily have access to
+              // So we're going to do the lazy thing and just gather ALL of the other inner properties, and then resolve them at the end.
+              // Hope this is OK.
+            }
+          }
+        }
+      }
+
+      for (const [indexToStart, propertyListToMerge] of propertiesToMerge) {
+        const modifiedProperties = new Set<string>();
+        for (const property of propertyListToMerge) {
+          const propertyType = property.exportTypes;
+          let foundProperty = false;
+          for (let i = indexToStart; i < draftState.length; i++) {
+            const draftStateExport = draftState[i];
+            if (modifiedProperties.has(draftStateExport.uuid)) continue;
+            if (draftStateExport.exportTypes === propertyType) {
+              foundProperty = true;
+              console.log("Merging property:", propertyType)
+              modifiedProperties.add(draftStateExport.uuid)
+              draftStateExport.propertyList = await resolvePropertyListMerges(property.propertyList, draftStateExport.propertyList);
+              break;
             }
           }
 
-          if (resolvedExportType === 'Build_ConveyorBeltMk1_C') throw new Error("DDDDDDD");
+          if (!foundProperty) {
+            draftState.push(property);
+          }
         }
       }
     }
   );
 
-  let finalExportList = [] as any[];
-
-  // Gets all properties
-  const subProperties = [...[...definedClassInstanceUuids].map(exportUuid => innerExportsByUuid.get(exportUuid))] as unknown as UExports[];
-
-  const subPropertyCountMap = new Map<string, any[]>();
-  const allExportTypes = new Set();
-
-  // if (subProperties.length) {
-  //   // console.log(subProperties);
-  //   throw new Error("ddfdsfsfsdfsdfs");
-  // }
-
-  subProperties.forEach(item => {
-    const exportType = item.exportTypes;
-    allExportTypes.add(exportType);
-
-    if (!subPropertyCountMap.has(exportType)) {
-      subPropertyCountMap.set(exportType, []);
-    }
-    subPropertyCountMap.get(item.exportTypes)!.push(item);
-  })
-//
-//   const subPropertyCountMap = new Map<string, any[]>();
-//
-//   const allExportTypes = new Set();
-//
-//   subProperties.forEach(item => {
-//     const exportType = item.exportTypes;
-//     allExportTypes.add(exportType);
-//
-//     if (!subPropertyCountMap.has(exportType)) {
-//       subPropertyCountMap.set(exportType, []);
-//     }
-//     subPropertyCountMap.get(item.exportTypes)!.push(item);
-//   })
-//
-//   const outerPropertyCountMap = new Map<string, any[]>();
-//
-//   filteredExports.forEach(item => {
-//     const exportType = item.exportTypes;
-//     allExportTypes.add(exportType);
-//     if (!outerPropertyCountMap.has(exportType)) {
-//       outerPropertyCountMap.set(exportType, []);
-//     }
-//     outerPropertyCountMap.get(item.exportTypes)!.push(item);
-//   })
-//
-//   const processedOuterExportUuids = new Set<string>();
-//
-//   // Merge all subproperties
-//   for (const item of subProperties) {
-//     const overwritingPropertyLength = outerPropertyCountMap.get(item.exportTypes)?.length;
-//
-//     const innerGuids = findGuids(item);
-//
-//     //TODO: Refactor the duplication. Hard to figure out where the actual changes were.
-//     if (!overwritingPropertyLength) {
-//       // Easy, just put the subproperty in the final array!
-//       finalExportList.push(item);
-//     } else {
-//       if (overwritingPropertyLength === 1) {
-//         const outerExport = outerPropertyCountMap.get(item.exportTypes)![0];
-//
-//         const outerGuids = findGuids(outerExport);
-//
-//         const intersection = new Set(
-//           [...innerGuids].filter(x => outerGuids.has(x)));
-//
-//         if (innerGuids.size && !intersection.size) {
-//           if (innerGuids.size === 1) {
-//             // They're not related. Don't push, but this is a hack.
-//             finalExportList.push(item);
-//           } else {
-//             console.log(innerGuids, outerGuids);
-//             console.log(item.propertyList.map((item: any) => item.name));
-//             console.log(outerExport.propertyList.map((item: any) => item.name));
-//             throw new Error("Unimplemented property replacement: 1")
-//           }
-//         } else {
-//           // Just replace the first, and then delete the overwriting from the array
-//           const doctoredExport = await mergeExports(item, outerExport)
-//
-//           finalExportList.push(doctoredExport);
-//
-//           const outerPropertyArray = outerPropertyCountMap.get(item.exportTypes)!;
-//           const spliceIndex = outerPropertyArray.indexOf(outerExport);
-//           if (spliceIndex === -1) {
-//             throw new Error("Index should not be negative");
-//           }
-//
-//           processedOuterExportUuids.add(outerExport.uuid);
-//
-//           outerPropertyArray.splice(spliceIndex, 1);
-//         }
-//       } else {
-//
-//         if (!innerGuids.size) {
-//           const outerExport = outerPropertyCountMap.get(item.exportTypes)![0];
-//
-//           // Just replace the first, and then delete the overwriting from the array
-//           const doctoredExport = await mergeExports(item, outerExport)
-//
-//           finalExportList.push(doctoredExport);
-//
-//           const outerPropertyArray = outerPropertyCountMap.get(item.exportTypes)!;
-//           const spliceIndex = outerPropertyArray.indexOf(outerExport);
-//           if (spliceIndex === -1) {
-//             throw new Error("Index should not be negative");
-//           }
-//
-//           processedOuterExportUuids.add(outerExport.uuid);
-//
-//           outerPropertyArray.splice(spliceIndex, 1);
-//         } else {
-//           const outerExports = outerPropertyCountMap.get(item.exportTypes)!;
-//
-//           let foundExport = false;
-//           let outerExport: any;
-//           for (const possibleOuterExport of outerExports) {
-//             const intersection = new Set(
-//               [...innerGuids].filter(x => findGuids(possibleOuterExport).has(x)));
-//             if (intersection.size) {
-//               foundExport = true;
-//               outerExport = possibleOuterExport;
-//               break;
-//             }
-//           }
-//
-//           if (!foundExport) {
-//             finalExportList.push(item);
-//           } else {
-//             // Just replace the first, and then delete the overwriting from the array
-//             const doctoredExport = await mergeExports(item, outerExport)
-//
-//             finalExportList.push(doctoredExport);
-//
-//             const outerPropertyArray = outerPropertyCountMap.get(item.exportTypes)!;
-//             const spliceIndex = outerPropertyArray.indexOf(outerExport);
-//             if (spliceIndex === -1) {
-//               throw new Error("Index should not be negative");
-//             }
-//
-//             processedOuterExportUuids.add(outerExport.uuid);
-//
-//             outerPropertyArray.splice(spliceIndex, 1);
-//           }
-//         }
-//       }
-//     }
-//   }
-//
-//   filteredExports.forEach(item => {
-//     if (processedOuterExportUuids.has(item.uuid)) {
-//       return;
-//     }
-//
-//     finalExportList.push(item);
-//   })
-//
-
+  // console.log(util.inspect(filteredExports.map((exp) => {
+  //   return {
+  //     name: exp.exportTypes,
+  //     props: exp.propertyList
+  //   }
+  // }), false, null, true ) )
 
   resolvedExportsCache.set(baseObject.uuid, filteredExports);
   return filteredExports;

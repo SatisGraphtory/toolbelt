@@ -26,8 +26,13 @@ export function FPackageIndexEntry(
     const asExport = (index - 1)
 
     if (index < 0 && asImport < imports.length) {
+      const reference = imports[asImport];
+
+      // Stitch in the outerReference
+      reference.outerReference = await reader.read(FPackageIndexEntry(reference.outerIndex, imports, exports));
+
       return {
-        reference: imports[asImport],
+        reference,
         index: asImport
       }
     } else if (index > 0 && asExport < exports.length) {
@@ -38,7 +43,7 @@ export function FPackageIndexEntry(
     }
 
     // We can read the actual import by doing this:
-    // reference.outerImport = JSON.parse(
+    // reference.outerReference = JSON.parse(
     //   JSON.stringify(await reader.read(FPackageIndexInt(reference.outerIndex, imports, exports))),
     // );
 

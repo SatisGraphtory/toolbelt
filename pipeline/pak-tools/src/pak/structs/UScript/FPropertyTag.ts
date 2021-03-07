@@ -102,6 +102,8 @@ export function FPropertyTag(asset: UAsset, shouldRead: boolean, depth: number) 
 
     let tag = null;
 
+    let fullyRead = true;
+
     if (shouldRead && baseTag.size > 0) {
       reader.trackReads();
       tag = await reader.read(Tag(asset, baseTag.propertyType, tagMetaData as TagMetaData, depth + 1));
@@ -112,6 +114,8 @@ export function FPropertyTag(asset: UAsset, shouldRead: boolean, depth: number) 
             baseTag.propertyType
           }) property not read fully, ${reader.getTrackedBytesRead()}/${baseTag.size} bytes read.`,
         );
+
+        fullyRead = false;
 
         if (reader.getTrackedBytesRead() > baseTag.size) {
           throw new Error('More bytes were read than available!');
@@ -134,6 +138,7 @@ export function FPropertyTag(asset: UAsset, shouldRead: boolean, depth: number) 
       tagMetaData,
       propertyGuid,
       tag: shouldRead ? tag : tagMetaData,
+      fullyRead
     };
   };
 }
@@ -224,7 +229,7 @@ export function Tag(asset: UAsset, propertyType: string, tagMetaData: TagMetaDat
 }
 
 export async function readFPropertyTagLoop(reader: Reader, asset: UAsset): Promise<any[]> {
-  const propertyList: any[] = [];
+  const propertyList: Shape<typeof FPropertyTag>[] = [];
   for (;;) {
     const property = await reader.read(FPropertyTag(asset, true, 0));
     if (!property) {
@@ -233,5 +238,5 @@ export async function readFPropertyTagLoop(reader: Reader, asset: UAsset): Promi
     propertyList.push(property);
   }
 
-  return propertyList as Shape<typeof FPropertyTag>[];
+  return propertyList;
 }

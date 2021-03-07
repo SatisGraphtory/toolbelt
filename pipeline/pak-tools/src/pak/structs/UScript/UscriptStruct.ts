@@ -32,6 +32,7 @@ import {FStructFallback} from "./UScriptStrutTypes/FStructFallback";
 import {FPerPlatformFloat} from "./UScriptStrutTypes/FPerPlatformFloat";
 import {FMovieSceneEvaluationTemplate} from "./UScriptStrutTypes/FMovieSceneEvaluationTemplate";
 import {EnumProperty} from "./properties/EnumProperty";
+import {ConsoleColor} from "../../../util/consoleColors";
 
 const MAX_RECURSION_DEPTH = 50;
 
@@ -52,6 +53,9 @@ export function StructPropertyTagMetaData(names: NameMap) {
     return result;
   };
 }
+
+export const fullyReadStructProperties = new Set();
+export const incompletelyReadStructProperties = new Set();
 
 // https://github.com/EpicGames/UnrealEngine/blob/7d9919ac7bfd80b7483012eab342cb427d60e8c9/Engine/Source/Runtime/CoreUObject/Private/UObject/Class.cpp#L2146
 export function UScriptStruct(
@@ -182,9 +186,9 @@ export function UScriptStruct(
         case 'PerPlatformInt':
           tag = await reader.read(FPerPlatformInt);
           break;
-        case 'StructProperty':
-          tag = await reader.read(UScriptStruct(tagMetaData, asset, depth + 1));
-          break;
+
+
+
         // TODO: fix these
         // Whitelisted fallback entries.
         // case 'BodyInstance':
@@ -259,32 +263,60 @@ export function UScriptStruct(
         // case 'MovieScenePossessable':
         // case 'MovieSceneBinding':
         // case 'FrameRate':
-        case 'ResourceDepositPackage':
-        case 'Int32Interval':
-          return await reader.read(FStructFallback(asset));
+        // case 'ResourceDepositPackage':
+        // case 'Int32Interval':
+        //   return await reader.read(FStructFallback(asset));
+          //TODO: kill this?
         case 'InventoryItem':
           tag = await reader.read(FPackageIndex(asset.imports, asset.exports));
           break;
-        case 'SkeletalMeshSamplingLODBuiltData':
-        case 'FontCharacter':
-        case 'FontData':
-        case 'MovieSceneFloatChannel':
-        case 'ScalarMaterialInput':
-        case 'MaterialAttributesInput':
-        case 'ResponseChannel':
-        case 'MovieSceneEventParameters':
-        case 'MovieSceneParticleChannel':
-        case 'RawCurveTracks':
-        case 'SmartName':
-        case 'FloatCurve':
+        // case 'SkeletalMeshSamplingLODBuiltData':
+        // case 'FontCharacter':
+        // case 'FontData':
+        // case 'MovieSceneFloatChannel':
+        // case 'ScalarMaterialInput':
+        // case 'MaterialAttributesInput':
+        // case 'MovieSceneEventParameters':
+        // case 'MovieSceneParticleChannel':
+        // case 'RawCurveTracks':
+        // case 'SmartName':
+        // case 'FloatCurve':
           // // https://github.com/EpicGames/UnrealEngine/blob/4.22/Engine/Source/Runtime/MovieScene/Public/Channels/MovieSceneFloatChannel.h#L299
-          return null;
+          // return null;
+        case 'StructProperty': // We want to use the default reader to fully read struct properties.
         default:
-          console.log("Reading backup structure", tagMetaData.structName)
+
+          let possibleProperties = null;
+          const structName = tagMetaData.structName;
+          let readSuccess = true;
+
           try {
-            return await reader.read(FStructFallback(asset));
-          } catch (e) {}
-          return null;
+            possibleProperties = await reader.read(FStructFallback(asset));
+
+            if (possibleProperties.every(property => property.fullyRead)) {
+
+              // Only log this if previous backup structure read was not listed.
+              if (!fullyReadStructProperties.has(structName)) {
+                console.info("Successful read of backup structure:", structName)
+                fullyReadStructProperties.add(structName)
+              }
+            } else {
+              readSuccess = false;
+              console.log(ConsoleColor.FgRed, "Unsuccessful full read of:", structName, ConsoleColor.Reset);
+              incompletelyReadStructProperties.add(structName)
+            }
+
+          } catch (e) {
+            readSuccess = false;
+            console.log(ConsoleColor.FgRed, "Unsuccessful (errored) full read of:", structName, ConsoleColor.Reset);
+            incompletelyReadStructProperties.add(structName)
+          }
+
+          // if (fullyReadStructProperties.has(structName) && incompletelyReadStructProperties.has(structName)) {
+          //   throw new Error("Previously fully read structure is not fully read now: " + structName);
+          // }
+
+          return possibleProperties;
       }
     } else {
       throw new Error('No tagMetaData');

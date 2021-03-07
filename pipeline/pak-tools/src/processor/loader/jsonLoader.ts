@@ -38,23 +38,11 @@ export function getJsonForObject(className: string) {
   return jsonRetriever(findJsonObject(className) as string);
 }
 
+export function getJsonForObjectStrict(className: string) {
+  return jsonRetriever(className as string);
+}
+
 let i = 0;
-export const findPossibleClasses = (names: Set<string>) => {
-  console.error("CALLING", i++);
-  const matches: string[] = [];
-  Object.keys(JSONFiles).filter(key => {
-    const properties = jsonRetriever(key);
-    const setProps = new Set(properties.required);
-    if (
-      [...names].every((item: string) => {
-        return setProps.has(item);
-      })
-    ) {
-      matches.push(key);
-    }
-  });
-  return matches;
-};
 
 const jsonRetriever = (className: string) => {
   const data = (JSONFiles as any)[className];
@@ -64,3 +52,32 @@ const jsonRetriever = (className: string) => {
 
   return data;
 };
+
+const cachedPropertyClasses =  Object.keys(JSONFiles).map(key => {
+  const properties = jsonRetriever(key);
+  const setProps: Set<string> = new Set(properties.required);
+  return [key, setProps];
+});
+
+export const findPossibleClasses = (names: Set<string>) => {
+  const matches: string[] = [];
+
+  if (!names.size) return matches;
+
+  cachedPropertyClasses.forEach(([key, propertySet]) => {
+    if (
+      [...names].every((item: string) => {
+        return (propertySet as Set<string>).has(item);
+      })
+    ) {
+      matches.push(key as string);
+    }
+  })
+
+  if (matches.length === 1) {
+    console.error("Found singular bruteforce match ", matches[0], "for", names);
+  }
+
+  return matches;
+};
+

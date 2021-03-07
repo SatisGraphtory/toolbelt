@@ -12,13 +12,15 @@ export function FObjectExportFromExports(index: number,  imports: Shape<typeof F
   return async function FObjectExportParser(reader: Reader) {
     const exportMapEntry = exports[index];
 
+    const outerExport = await reader.read(FPackageIndex(imports, exports, exportMapEntry.outerIndex));
     return {
-      outerIndex: await reader.read(FPackageIndex(imports, exports, exportMapEntry.outerIndex)),
+      outerIndex: outerExport.index,
       objectFlags: exportMapEntry.objectFlags,
       serialOffset: exportMapEntry.serialOffset,
       serialSize: exportMapEntry.serialSize,
       packageFlags: exportMapEntry.packageFlags,
-      objectName: exportMapEntry.objectName
+      objectName: exportMapEntry.objectName,
+      outerReference: outerExport.reference
     };
   };
 }
