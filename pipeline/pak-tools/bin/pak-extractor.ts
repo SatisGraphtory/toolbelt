@@ -89,8 +89,6 @@ async function main() {
     recipeNativeMap[key] = value;
   }
 
-
-
   const destDir = path.resolve(paths.dataLanding.objects);
 
   fs.rmdirSync(destDir, { recursive: true });

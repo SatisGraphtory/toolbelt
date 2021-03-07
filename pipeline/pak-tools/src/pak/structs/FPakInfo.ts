@@ -3,7 +3,7 @@ import * as util from 'util';
 import { PakVersion } from '../PakFile';
 
 import {Reader} from "../../readers/Reader";
-import {Int32, Int64, Int8, UInt32} from "../primitive/integers";
+import {Int32, Int64, Int8, UInt32, UInt8} from "../primitive/integers";
 import {FixedCString} from "../primitive/strings";
 import {Shape} from "../../util/parsers";
 import {FGuid, GuidSize} from "./UScript/UScriptStrutTypes/FGuid";
@@ -30,12 +30,18 @@ export function FPakInfo(version: PakVersion) {
       indexHash: await reader.readBytes(20),
     };
 
+    if (version >= PakVersion.PakFileVersionFrozenIndex) {
+      await reader.read(UInt8);
+    }
+
     const compressionMethods = [] as (string | null)[];
     // https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/PakFile/Public/IPlatformFilePak.h#L70-L73
     if (version >= PakVersion.FNameBasedCompressionMethod) {
       compressionMethods.push(await reader.read(FixedCString(32)));
       compressionMethods.push(await reader.read(FixedCString(32)));
       compressionMethods.push(await reader.read(FixedCString(32)));
+      compressionMethods.push(await reader.read(FixedCString(32)));
+      // TODO: Remove this once it's patched
       compressionMethods.push(await reader.read(FixedCString(32)));
     }
 
@@ -63,6 +69,8 @@ export function FPakInfoSize(version: PakVersion) {
 
   if (version >= PakVersion.EncryptionKeyGuid) size += GuidSize;
   if (version >= PakVersion.FNameBasedCompressionMethod) size += 32 * 4;
+  if (version >= PakVersion.PakFileVersionFrozenIndex) size += 1;
+  if (version >= PakVersion.PakFileLatestButUnknown) size += 32;
 
   return size;
 }

@@ -22,9 +22,11 @@ export enum PakVersion {
   DeleteRecords = 6,
   EncryptionKeyGuid = 7,
   FNameBasedCompressionMethod = 8,
+  PakFileVersionFrozenIndex= 9,
+  PakFileLatestButUnknown = 10
 }
 
-export const LatestPakVersion = PakVersion.FNameBasedCompressionMethod;
+export const LatestPakVersion = PakVersion.PakFileLatestButUnknown;
 
 /**
  * Parser and content of a .pak file.
@@ -71,6 +73,7 @@ export class PakFile {
    */
   async loadInfo() {
     let version = LatestPakVersion;
+
     while (version > 0) {
       this.reader.seekTo(-FPakInfoSize(version));
       try {
@@ -100,7 +103,7 @@ export class PakFile {
    * @see https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/PakFile/Private/IPlatformFilePak.cpp#L4254-L4356
    */
   async loadIndex() {
-    const { indexOffset, indexSize, indexHash } = this.info;
+    const { indexOffset, indexSize, indexHash, version } = this.info;
 
     this.reader.seekTo(indexOffset);
     await this.reader.checkHash('index', indexSize, indexHash);
@@ -112,7 +115,7 @@ export class PakFile {
     for (let i = 0; i < numEntries; i++) {
       const filename = await this.reader.read(UnrealString);
 
-      const entry = await this.reader.read(FPakEntry);
+      const entry = await this.reader.read(FPakEntry(version));
       this.entries.set(filename, entry);
     }
   }
@@ -154,16 +157,15 @@ export class PakFile {
     // https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/PakFile/Public/IPlatformFilePak.h#L1251-L1284
     const headerReader = new ChildReader(this.reader, entry.offset, Infinity);
 
-    //
-    //
-    // this.reader.seekTo(entry.offset);
-    // const header = await this.reader.read(FPakEntry);
+    const {version} = this.info;
 
-    const header = await headerReader.read(FPakEntry);
+    const header = await headerReader.read(FPakEntry(version));
+
+
     this.checkEntries(filename, entry, header);
 
     const reader = new ChildReader(headerReader, headerReader.position, entry.size);
-    await reader.checkHash(filename, entry.size, entry.hash);
+    // await reader.checkHash(filename, entry.size, entry.hash);
 
     return { filename, entry, reader };
   }
@@ -207,7 +209,7 @@ export class PakFile {
 
     // UExp is just a collection of exports, which is why we would rather just roll that into the UObject.
 
-    const uObjectFile = new UObject(uassetFile, uexpPackageFile.reader, ubulkPackageFile?.reader);
+    const uObjectFile = new UObject(this.info.version, uassetFile, uexpPackageFile.reader, ubulkPackageFile?.reader);
     await uObjectFile.initialize();
 
     this.packageCache.set(path, uObjectFile);
@@ -254,7 +256,7 @@ export class PakFile {
     const numFilesToGet = uAssetFileSet.size;
     let i = 0;
 
-    const promises = [...uAssetFileSet].map(filePath => {
+    const promises = [...uAssetFileSet].slice(0, 2).map(filePath => {
       return this.getPackage(filePath);
     });
 

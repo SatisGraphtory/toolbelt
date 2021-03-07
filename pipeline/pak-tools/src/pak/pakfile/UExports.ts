@@ -7,7 +7,8 @@ import {Reader} from "../../readers/Reader";
 import {UAsset} from "./UAsset";
 import {UInt32} from "../primitive/integers";
 import {FGuid} from "../structs/UScript/UScriptStrutTypes/FGuid";
-import { v4 as uuidv4 } from 'uuid';
+import {v4 as uuidv4} from 'uuid';
+import {PakVersion} from "../PakFile";
 
 export class UExports {
   propertyList = [] as Shape<typeof FPropertyTag>[];
@@ -19,10 +20,15 @@ export class UExports {
     public asset: UAsset,
     public exportTypes: string,
     private readGuid: boolean,
+    private pakVersion: PakVersion
   ) {
   }
 
   async initialize() {
+    if (this.pakVersion > PakVersion.PakFileVersionFrozenIndex) {
+      await this.reader.readBytes(3);
+    }
+
     this.propertyList = await readFPropertyTagLoop(this.reader, this.asset);
 
     if (this.readGuid && (await this.reader.read(UInt32)) !== 0) {

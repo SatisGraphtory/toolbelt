@@ -6,20 +6,22 @@ import {UAsset} from "./UAsset";
 import {Reader} from "../../readers/Reader";
 import {UExports} from "./UExports";
 import {v4 as uuidv4} from "uuid";
+import {PakVersion} from "../PakFile";
 
 export class UObject {
-  constructor(public uasset: UAsset, private uexpReader: Reader, private ubulkReader?: Reader) {}
+  constructor(private pakVersion: PakVersion, public uasset: UAsset, private uexpReader: Reader, private ubulkReader?: Reader) {}
 
   public readonly uuid: string = uuidv4();
 
   public uexports: UExports[] = [];
 
   async initialize() {
+
     for (const exp of this.uasset.exports) {
       this.uexpReader.seekTo(exp.serialOffset - this.uasset.summary.totalHeaderSize);
 
       const className = this.uasset.getClassNameFromExport(exp);
-      const baseObject = new UExports(this.uexpReader, this.uasset, className, true);
+      const baseObject = new UExports(this.uexpReader, this.uasset, className, true, this.pakVersion);
       await baseObject.initialize();
 
       this.uexports.push(baseObject);

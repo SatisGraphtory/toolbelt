@@ -58,7 +58,7 @@ export class UAsset {
 
   // https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/CoreUObject/Private/UObject/LinkerLoad.cpp#L1130-L1379
   async loadSummary() {
-    this.summary = await this.reader.read(FPackageFileSummary);
+    this.summary = await this.reader.read(FPackageFileSummary(this.pak.info.version));
   }
 
   // https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/CoreUObject/Private/UObject/LinkerLoad.cpp#L1381-L1440
