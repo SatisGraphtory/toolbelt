@@ -44,11 +44,11 @@ jobs:
 
       - name: Create working branch
         working-directory: ./.DataLanding
-        run: git checkout -b ${env.LANDING_BRANCH}
+        run: git checkout -b ${{env.LANDING_BRANCH}}
 
       - name: Push working branch
         working-directory: ./.DataLanding
-        run: git push origin ${env.LANDING_BRANCH}
+        run: git push origin ${{env.LANDING_BRANCH}}
 
       - name: Set game metadata
         working-directory: ./.SourceData
@@ -130,17 +130,17 @@ jobs:
         run: |
           git config --global user.email "satisgraphtory-bot@satisgraphtory.com"
           git config --global user.name "Satisgraphtory DataBot"
-          git fetch origin ${env.LANDING_BRANCH}
-          git merge --squash origin/${env.LANDING_BRANCH}
+          git fetch origin ${LANDING_BRANCH}
+          git merge --squash origin/${LANDING_BRANCH}
           if [[ "$(git status --porcelain)" != "" ]]; then
-            git commit --allow-empty -m "v${env.GAME_VERSION} (CL ${env.GAME_BUILD}) (SatisGraphtory/SourceData@${env.SOURCE_SHA} via SatisGraphtory/ToolBelt@${env.ENGINEERING_SHA})"
+            git commit --allow-empty -m "v${GAME_VERSION} (CL ${GAME_BUILD}) (SatisGraphtory/SourceData@${SOURCE_SHA} via SatisGraphtory/ToolBelt@${ENGINEERING_SHA})"
             git push
-            git push origin :refs/tags/v${env.GAME_VERSION}
-            git tag -fa v${env.GAME_VERSION}
+            git push origin :refs/tags/v${GAME_VERSION}
+            git tag -fa v${GAME_VERSION}
             git push --tags
           else
             echo No changes to DataLanding. Skipping commit.
           fi
       - name: Cleanup
         run: |
-          git push origin --delete ${env.LANDING_BRANCH}
+          git push origin --delete ${LANDING_BRANCH}
