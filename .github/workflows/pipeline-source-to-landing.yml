@@ -36,7 +36,6 @@ jobs:
         with:
           path: ./.DataLanding
           repository: SatisGraphtory/DataLanding
-          ref: ${{ env._SOURCE_REF }}
 
       - name: Create working branch
         working-directory: ./.DataLanding
