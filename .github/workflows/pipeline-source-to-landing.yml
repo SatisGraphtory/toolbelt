@@ -40,7 +40,6 @@ jobs:
           path: ./.DataLanding
           repository: SatisGraphtory/DataLanding
           ref: ${{ env.GAME_BRANCH }}
-          token: ${{ secrets.PUSH_TOKEN }}
 
       - name: Create working branch
         working-directory: ./.DataLanding
