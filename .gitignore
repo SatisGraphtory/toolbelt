@@ -3,3 +3,5 @@
 pak-dump
 /.SourceData/
 /.DataLanding/
+/pipeline/pak-tools/.env
+.env

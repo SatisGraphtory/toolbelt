@@ -3,10 +3,14 @@ import 'reflect-metadata';
 import * as fs from 'fs';
 import * as path from 'path';
 import { paths } from '@local/paths';
-import * as unzipper from 'unzipper';
 import {exiftool} from 'exiftool-vendored';
 import fetch from 'node-fetch';
 import { parse } from 'node-html-parser';
+import * as VDF from '@node-steam/vdf';
+
+const AdmZip = require('adm-zip');
+
+require('dotenv').config()
 
 const NEWS_OTHER = 'http://ingamenews.satisfactorygame.com/other.news';
 const NEWS_EXPERIMENTAL = 'http://ingamenews.satisfactorygame.com/experimental.news';
@@ -27,7 +31,16 @@ let INSTALL_DIR = process.env.INSTALL_DIR || DEFAULT_INSTALL_DIR_RELEASE;
 let BRANCH = "master"
 let NEWS_SOURCE = NEWS_MAIN;
 
+let VERSION = 0;
+let SEMANTIC = '';
+
 main();
+
+function sleep(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 
 async function main() {
   if (process.env.EXPERIMENTAL) {
@@ -42,10 +55,15 @@ async function main() {
       git checkout master; git pull`).toString())
   }
 
+  console.log(execSync(`rm -rf ${paths.sourceData.headers}/* ${paths.sourceData.docs}/* \
+  ${path.join(paths.sourceData.root, "metadata.json")}`).toString())
+
+  await sleep(1000);
+
   await copyDocs();
   await copyHeaders();
   await generateMetadataJson();
-  // await commitFiles();
+  await commitFiles();
 }
 
 async function copyDocs(sourceDocFolder = path.join(INSTALL_DIR, 'CommunityResources', 'Docs'),
@@ -57,10 +75,12 @@ async function copyDocs(sourceDocFolder = path.join(INSTALL_DIR, 'CommunityResou
 
 async function copyHeaders(sourceHeaderFolder = path.join(INSTALL_DIR, 'CommunityResources'),
                         targetHeaderFolder = path.join(paths.sourceData.headers)) {
-  await new Promise((resolve) => fs.createReadStream(path.join(sourceHeaderFolder, "Headers.zip"))
-    .pipe(unzipper.Extract({ path: targetHeaderFolder })).on('close', function () {
-      resolve();
-    }));
+  console.log(path.join(sourceHeaderFolder, "Headers.zip"), targetHeaderFolder);
+
+  const headers = new AdmZip(path.join(sourceHeaderFolder, "Headers.zip"));
+
+  headers.extractAllTo(targetHeaderFolder, true);
+
   console.log("Copied Headers.")
 }
 
@@ -100,16 +120,43 @@ async function generateMetadataJson() {
   const tags = await exiftool.read(exeFilePath);
   await exiftool.end();
 
-  const buildNumber = parseInt((tags as any).ProductVersion.match(/^\+\+FactoryGame\+main-CL-([0-9]+)$/)![1]);
-
+  const buildNumber = parseInt((tags as any).ProductVersion.match(/^\+\+FactoryGame.*-CL-([0-9]+)$/)![1]);
+  console.log(NEWS_SOURCE);
   const news = await fetchVersions(NEWS_SOURCE);
 
   if (news.buildNumber !== buildNumber) {
-    throw new Error(`The file build number (${buildNumber}) and the new build number (${news.buildNumber}) do not match!`)
+    if (news.buildNumber < buildNumber) {
+      throw new Error(`The file build number (${buildNumber}) and the news build number (${news.buildNumber}) do not match!`)
+    } else {
+      console.warn(`The file build number (${buildNumber}) is less than the news build number (${news.buildNumber})! (But we're ignoring this!)`)
+    }
   }
 
-  const json = `{\n  "version": {\n    "branch": "${BRANCH}",\n    "public": "${news.semanticVersion}",\n    "build": ${buildNumber}\n  }\n}`
+  const json = `{\n  "version": {\n    "branch": "${BRANCH}",\n    "public": "${news.semanticVersion}",\n    "build": ${news.buildNumber}\n  }\n}`
   const filePath = path.join(paths.sourceData.root, "metadata.json");
+
+  VERSION = news.buildNumber;
+  SEMANTIC = news.semanticVersion;
+
   fs.writeFileSync(filePath, json);
   console.log("Wrote metadata.json to", filePath);
+}
+
+async function commitFiles() {
+  if (!VERSION) {
+    throw new Error("Version not defined, aborting commit");
+  }
+
+  if (!process.env.PAT) {
+    throw new Error("No Personal Access Token defined. Define a .env file with PAT and the token!")
+  }
+  let additionalString  = ''
+  if (process.env.EXPERIMENTAL) {
+    additionalString = ' (Experimental)'
+  }
+
+  console.log(execSync(`cd ${paths.sourceData.root}; git add Docs/* Headers* metadata.json; \
+      git commit -m "Build Version ${VERSION} (${SEMANTIC}) ${additionalString}"; \   
+      git remote set-url origin https://${process.env.PAT}@github.com/SatisGraphtory/SourceData.git; \ 
+      git push origin ${BRANCH}; git push;`).toString())
 }
