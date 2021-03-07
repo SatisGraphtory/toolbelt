@@ -11,10 +11,10 @@ jobs:
         run: |
           REF="${{ github.event.client_payload.ref }}"
           if [[ "${REF}" != "" ]]; then
-            echo "GAME_BRANCH=${REF#refs/head/}" >> $GITHUB_ENV
+            echo "GAME_BRANCH=${REF#refs/head/}" | tee -a ./env-vars >> $GITHUB_ENV
             echo "_SOURCE_REF=${{ github.event.client_payload.sha }}" >> $GITHUB_ENV
           else
-            echo "GAME_BRANCH=master" >> $GITHUB_ENV
+            echo "GAME_BRANCH=master" | tee -a ./env-vars >> $GITHUB_ENV
             echo "_SOURCE_REF=master" >> $GITHUB_ENV
           fi
       - name: Checkout SourceData
@@ -28,9 +28,12 @@ jobs:
         working-directory: ./.SourceData
         run: |
           SOURCE_SHA=$(git rev-parse HEAD)
-          echo "LANDING_BRANCH=working/${SOURCE_SHA}/${{ github.sha }}" >> $GITHUB_ENV
-          echo "ENGINEERING_SHA=${{ github.sha }}" >> $GITHUB_ENV
-          echo "SOURCE_SHA=${SOURCE_SHA}" >> $GITHUB_ENV
+          echo "LANDING_BRANCH=working/${SOURCE_SHA}/${{ github.sha }}" echo "GAME_BRANCH=master" | tee -a ../env-vars >> $GITHUB_ENV
+          echo "ENGINEERING_SHA=${{ github.sha }}" | tee -a ../env-vars >> $GITHUB_ENV
+          echo "SOURCE_SHA=${SOURCE_SHA}" | tee -a ../env-vars >> $GITHUB_ENV
+
+          cat ../env-vars
+
       - name: Checkout DataLanding
         uses: actions/checkout@v2
         with:
@@ -50,98 +53,94 @@ jobs:
       - name: Set game metadata
         working-directory: ./.SourceData
         run: |
-          echo "GAME_VERSION=$(jq -r .version.public metadata.json)" >> $GITHUB_ENV
-          echo "GAME_BUILD=$(jq -r .version.build metadata.json)" >> $GITHUB_ENV
-#      - uses: actions/upload-artifact@v1
-#        with:
-#          name: env-vars
-#          path: env-vars
-      - name: Echo Debug
+          echo "GAME_VERSION=$(jq -r .version.public metadata.json)"  | tee -a ../env-vars >> $GITHUB_ENV
+          echo "GAME_BUILD=$(jq -r .version.build metadata.json)"  | tee -a ../env-vars >> $GITHUB_ENV
+      - uses: actions/upload-artifact@v1
+        with:
+          name: env-vars
+          path: env-vars
+
+  headers-to-interfaces:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v1
+        with:
+          name: env-vars
+      - name: Load configuration
+        run: cat env-vars/env-vars >> $GITHUB_ENV
+
+      - name: Checkout ToolBelt
+        uses: actions/checkout@v2
+
+      - name: Checkout SourceData
+        uses: actions/checkout@v2
+        with:
+          path: ./.SourceData
+          repository: SatisGraphtory/SourceData
+          ref: ${{ env.SOURCE_SHA }}
+
+      - name: Checkout DataLanding
+        uses: actions/checkout@v2
+        with:
+          path: ./.DataLanding
+          repository: SatisGraphtory/DataLanding
+          ref: ${{ env.LANDING_BRANCH }}
+          token: ${{ secrets.PUSH_TOKEN }}
+
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '12.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - run: yarn headers-to-interfaces
+
+      - run: yarn interfaces-to-json
+
+      - name: Push to DataLanding
+        working-directory: ./.DataLanding
         run: |
-          echo $GITHUB_ENV
+          git config --global user.email "satisgraphtory-bot@satisgraphtory.com"
+          git config --global user.name "Satisgraphtory DataBot"
+          git add .
+          git commit --allow-empty -m "headers-to-interfaces"
+          git push
+  merge:
+    needs:
+      - headers-to-interfaces
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v1
+        with:
+          name: env-vars
+      - name: Load configuration
+        run: cat env-vars/env-vars >> $GITHUB_ENV
 
+      - name: Checkout DataLanding
+        uses: actions/checkout@v2
+        with:
+          repository: SatisGraphtory/DataLanding
+          ref: ${{ env.GAME_BRANCH }}
+          token: ${{ secrets.PUSH_TOKEN }}
 
-#  headers-to-interfaces:
-#    needs: setup
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/download-artifact@v1
-#        with:
-#          name: env-vars
-#      - name: Load configuration
-#        run: cat env-vars/env-vars
-#
-#      - name: Checkout ToolBelt
-#        uses: actions/checkout@v2
-#
-#      - name: Checkout SourceData
-#        uses: actions/checkout@v2
-#        with:
-#          path: ./.SourceData
-#          repository: SatisGraphtory/SourceData
-#          ref: ${{ env.SOURCE_SHA }}
-#
-#      - name: Checkout DataLanding
-#        uses: actions/checkout@v2
-#        with:
-#          path: ./.DataLanding
-#          repository: SatisGraphtory/SourceData
-#          ref: ${{ env.LANDING_BRANCH }}
-#          token: ${{ secrets.PUSH_TOKEN }}
-#
-#      - uses: actions/setup-node@v1
-#        with:
-#          node-version: '12.x'
-#          registry-url: 'https://registry.npmjs.org'
-#
-#      - name: Install dependencies
-#        run: yarn install --frozen-lockfile
-#
-#      - run: yarn headers-to-interfaces
-#
-#      - run: yarn interfaces-to-json
-#
-#      - name: Push to DataLanding
-#        working-directory: ./.DataLanding
-#        run: |
-#          git config --global user.email "satisgraphtory-bot@satisgraphtory.com"
-#          git config --global user.name "Satisgraphtory Bot"
-#          git add .
-#          git commit --allow-empty -m "headers-to-interfaces"
-#          git push
-#  merge:
-#    needs:
-#      - headers-to-interfaces
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/download-artifact@v1
-#        with:
-#          name: env-vars
-#      - name: Load configuration
-#        run: cat env-vars/env-vars
-#
-#      - name: Checkout DataLanding
-#        uses: actions/checkout@v2
-#        with:
-#          repository: SatisGraphtory/DataLanding
-#          ref: ${{ env.GAME_BRANCH }}
-#          token: ${{ secrets.PUSH_TOKEN }}
-#
-#      - name: Merge
-#        run: |
-#          git config --global user.email "satisgraphtory-bot@satisgraphtory.com"
-#          git config --global user.name "Satisgraphtory Bot"
-#          git fetch origin ${LANDING_BRANCH}
-#          git merge --squash origin/${LANDING_BRANCH}
-#          if [[ "$(git status --porcelain)" != "" ]]; then
-#            git commit --allow-empty -m "v${GAME_VERSION} (CL ${GAME_BUILD}) (SatisGraphtory/SourceData@${SOURCE_SHA} via SatisGraphtory/ToolBelt@${ENGINEERING_SHA})"
-#            git push
-#            git tag -f v${GAME_VERSION}
-#            git push --tags
-#          else
-#            echo No changes to DataLanding. Skipping commit.
-#          fi
-#
-#      - name: Cleanup
-#        run: |
-#          git push origin --delete ${LANDING_BRANCH}
+      - name: Merge
+        run: |
+          git config --global user.email "satisgraphtory-bot@satisgraphtory.com"
+          git config --global user.name "Satisgraphtory DataBot"
+          git fetch origin ${LANDING_BRANCH}
+          git merge --squash origin/${LANDING_BRANCH}
+          if [[ "$(git status --porcelain)" != "" ]]; then
+            git commit --allow-empty -m "v${GAME_VERSION} (CL ${GAME_BUILD}) (SatisGraphtory/SourceData@${SOURCE_SHA} via SatisGraphtory/ToolBelt@${ENGINEERING_SHA})"
+            git push
+            git tag -f v${GAME_VERSION}
+            git push --tags
+          else
+            echo No changes to DataLanding. Skipping commit.
+          fi
+
+      - name: Cleanup
+        run: |
+          git push origin --delete ${LANDING_BRANCH}
