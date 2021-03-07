@@ -33,6 +33,9 @@ jobs:
           echo "SOURCE_SHA=${SOURCE_SHA}" >> $GITHUB_ENV
       - name: Checkout DataLanding
         uses: actions/checkout@v2
+        env:
+          GIT_TRACE: 1
+          GIT_CURL_VERBOSE: 1
         with:
           path: ./.DataLanding
           repository: SatisGraphtory/DataLanding
