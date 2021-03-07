@@ -56,11 +56,9 @@ jobs:
 #        with:
 #          name: env-vars
 #          path: env-vars
-      - name: Echo E
-        working-directory: ./.SourceData
+      - name: Echo Debug
         run: |
-          echo "GAME_VERSION=$(jq -r .version.public metadata.json)" >> $GITHUB_ENV
-          echo "GAME_BUILD=$(jq -r .version.build metadata.json)" >> $GITHUB_ENV
+          echo $GITHUB_ENV
 
 
 #  headers-to-interfaces:
