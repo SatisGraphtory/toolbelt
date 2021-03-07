@@ -31,7 +31,9 @@ const DEFAULT_INSTALL_DIR = '/mnt/a/Games/Epic/SatisfactoryExperimental';
 const DEFAULT_PAK_PATH = DEFAULT_INSTALL_DIR + '/FactoryGame/Content/Paks/FactoryGame-WindowsNoEditor.pak';
 const DEFAULT_EXE_PATH = DEFAULT_INSTALL_DIR + '/FactoryGame.exe';
 
-main();
+main().catch(e => {
+  console.log(e);
+});
 
 async function main() {
   const pakFilePath = process.env.PAK_PATH || DEFAULT_PAK_PATH;

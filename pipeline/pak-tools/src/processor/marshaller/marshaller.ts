@@ -206,6 +206,9 @@ export class Marshaller {
           case 'SoftObjectProperty':
             returnedArray.push(this.marshalSoftClassReference(arrayEntry));
             break;
+          case 'EnumProperty':
+            returnedArray.push(arrayEntry);
+            break;
           default:
             console.log(arrayEntry);
             throw new Error("UNKNOWN Type: " + innerType);

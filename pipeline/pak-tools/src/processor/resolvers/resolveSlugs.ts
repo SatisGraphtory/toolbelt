@@ -59,7 +59,8 @@ export function resolveSlugFromPackageReference(packageReference: packageReferen
   }
 
   // It's a resource aka item
-  if (/^FactoryGame\/Content\/FactoryGame\/Resource/.test(packagePath)) {
+  if (/^FactoryGame\/Content\/FactoryGame\/Resource/.test(packagePath)
+    || /^FactoryGame\/Content\/FactoryGame\/.*\/Parts/.test(packagePath)) {
     if (/^Desc_(.*)(_C)?$/.test(name)) {
       const itemName = name.match(/^Desc_(.*?)(_C)?$/)![1];
       return `item-${toKebabCase(itemName)}`;
