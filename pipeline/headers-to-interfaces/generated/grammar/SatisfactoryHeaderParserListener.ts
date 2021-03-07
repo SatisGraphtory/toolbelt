@@ -15,6 +15,7 @@ import { TypeDeclarationContext } from "./SatisfactoryHeaderParser";
 import { TemplateTypeContext } from "./SatisfactoryHeaderParser";
 import { TypeModifierContext } from "./SatisfactoryHeaderParser";
 import { TypeReferenceTypeContext } from "./SatisfactoryHeaderParser";
+import { GlobalVariableDeclarationContext } from "./SatisfactoryHeaderParser";
 import { ClassDeclarationContext } from "./SatisfactoryHeaderParser";
 import { ClassHeaderContext } from "./SatisfactoryHeaderParser";
 import { ClassMacroContext } from "./SatisfactoryHeaderParser";
@@ -219,6 +220,17 @@ export interface SatisfactoryHeaderParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	exitTypeReferenceType?: (ctx: TypeReferenceTypeContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `SatisfactoryHeaderParser.globalVariableDeclaration`.
+	 * @param ctx the parse tree
+	 */
+	enterGlobalVariableDeclaration?: (ctx: GlobalVariableDeclarationContext) => void;
+	/**
+	 * Exit a parse tree produced by `SatisfactoryHeaderParser.globalVariableDeclaration`.
+	 * @param ctx the parse tree
+	 */
+	exitGlobalVariableDeclaration?: (ctx: GlobalVariableDeclarationContext) => void;
 
 	/**
 	 * Enter a parse tree produced by `SatisfactoryHeaderParser.classDeclaration`.

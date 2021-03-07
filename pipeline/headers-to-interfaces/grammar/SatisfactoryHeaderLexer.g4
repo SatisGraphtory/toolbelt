@@ -8,6 +8,7 @@ fragment Newline: '\r'? '\n';
 // Keywords
 
 CLASS: 'class';
+EXTERN: 'extern';
 CONST: 'const';
 CONSTEXPR: 'constexpr';
 ENUM: 'enum';

@@ -18,6 +18,7 @@ element
   | staticPropertyDeclaration
   | typedef
   | usingNamespace
+  | globalVariableDeclaration
   | SEMICOLON
   ;
 
@@ -77,6 +78,11 @@ typeModifier
 typeReferenceType
   : STAR
   | AMPERSAND
+  ;
+
+// Globals
+globalVariableDeclaration
+  : EXTERN typeDeclaration? identifier contentWithNestedSquares? classPropertyDefaultValue? SEMICOLON
   ;
 
 // Classes

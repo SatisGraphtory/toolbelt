@@ -16,6 +16,10 @@ export namespace dataLanding {
   export const objects = path.join(root, 'objects');
 }
 
+export namespace toolBelt {
+  export const headersToInterfaces = path.join(engineeringRoot, 'pipeline', "headers-to-interfaces");
+}
+
 export namespace dataWarehouse {
   // export const root = path.join(engineeringRoot, '.data-warehouse');
 }

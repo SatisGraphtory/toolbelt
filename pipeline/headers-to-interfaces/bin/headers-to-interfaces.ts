@@ -8,7 +8,7 @@ import { EmitContext, EmittableCategory, EntryCategory } from '../emit';
 import { pretty } from '../emit/util';
 import { parseHeader, printTokens } from '../parse';
 
-const natives = path.resolve(__dirname, 'emit', 'native');
+const natives = path.resolve(__dirname.endsWith("bin") ? __dirname + "/../" : __dirname, 'emit', 'native');
 
 const categories = [
   EntryCategory.CLASS,
