@@ -135,7 +135,8 @@ jobs:
           if [[ "$(git status --porcelain)" != "" ]]; then
             git commit --allow-empty -m "v${env.GAME_VERSION} (CL ${env.GAME_BUILD}) (SatisGraphtory/SourceData@${env.SOURCE_SHA} via SatisGraphtory/ToolBelt@${env.ENGINEERING_SHA})"
             git push
-            git tag -f v${env.GAME_VERSION}
+            git push origin :refs/tags/v${env.GAME_VERSION}
+            git tag -fa v${env.GAME_VERSION}
             git push --tags
           else
             echo No changes to DataLanding. Skipping commit.
