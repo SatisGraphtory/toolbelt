@@ -28,7 +28,7 @@ jobs:
         working-directory: ./.SourceData
         run: |
           SOURCE_SHA=$(git rev-parse HEAD)
-          echo "LANDING_BRANCH=working/${SOURCE_SHA}/${{ github.sha }}" echo "GAME_BRANCH=master" | tee -a ../env-vars >> $GITHUB_ENV
+          echo "LANDING_BRANCH=working/${SOURCE_SHA}/${{ github.sha }}" | tee -a ../env-vars >> $GITHUB_ENV
           echo "ENGINEERING_SHA=${{ github.sha }}" | tee -a ../env-vars >> $GITHUB_ENV
           echo "SOURCE_SHA=${SOURCE_SHA}" | tee -a ../env-vars >> $GITHUB_ENV
 
