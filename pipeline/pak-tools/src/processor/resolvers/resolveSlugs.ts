@@ -89,6 +89,14 @@ export function resolveSlugFromPackageReference(packageReference: packageReferen
     }
   }
 
+  // It's a schematic
+  if (/^FactoryGame\/Content\/FactoryGame\/Schematics/.test(packagePath)) {
+    if (/^(Schematic_|SC_)?(.*)(_C)?$/.test(name)) {
+      const recipeName = name.match(/^(Schematic_|SC_)?(.*?)(_C)?$/)![2];
+      return `schematic-${toKebabCase(recipeName)}`;
+    }
+  }
+
   switch(name) {
     case 'BP_WorkBenchComponent_C':
       return 'building-work-bench-integrated'
@@ -101,7 +109,8 @@ export function resolveSlugFromPackageReference(packageReference: packageReferen
       return 'building-workshop'
   }
 
-  throw new Error("Unknown slug " + name + " with path " + packagePath)
+  //TODO: probably fix this somehow
+  return undefined;
 }
 
 export function toKebabCase(str: string) {

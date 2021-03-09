@@ -29,7 +29,7 @@ export function FPakEntry(version: PakVersion) {
       compressionBlocks,
       flags: await reader.read(UInt8),
       compressionBlockSize: await reader.read(UInt32),
-      trash: version >= PakVersion.PakFileVersionFrozenIndex ? await reader.readBytes(3) : 0
+      trash: version >= PakVersion.FrozenIndex ? await reader.readBytes(3) : 0
     };
   }
 }

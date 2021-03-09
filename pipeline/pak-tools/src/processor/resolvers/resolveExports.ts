@@ -152,7 +152,6 @@ export async function resolveExports(pakFile: PakFile, baseObject: UObject, dept
               originalExport.exportTypes = resolvedExportType as string;
               console.log("Transformed", exportType, "into", originalExport.exportTypes)
             }
-            throw new Error("WHAT");
           } else {
             numInnerExports++;
 

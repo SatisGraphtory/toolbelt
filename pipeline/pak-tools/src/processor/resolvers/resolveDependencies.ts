@@ -29,7 +29,7 @@ function populateCache(pakFile: PakFile) {
 
 export function dependencyExists(pakFile: PakFile, dependency: string) {
   if (!cachedDependencySet.size) {
-    console.log("Populating dependency")
+    console.log("Populating dependencies...")
     populateCache(pakFile);
   }
 
@@ -38,10 +38,9 @@ export function dependencyExists(pakFile: PakFile, dependency: string) {
 
 export function sanitizeDependencies(pakFile: PakFile, dependencies: Set<string>) {
   if (!cachedDependencySet.size) {
-    console.log("Populating dependency")
+    console.log("Populating dependencies...")
     populateCache(pakFile);
   }
-
 
   return new Set(
     [...dependencies]

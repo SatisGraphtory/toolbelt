@@ -34,13 +34,13 @@ export function resolveReferenceName(baseObject: UObject, blueprintName: string,
 
   // console.log("CORRECT IMPORT", util.inspect(correctImport, false, null, true ) )
 
-  const marshaller = new Marshaller();
+  const marshaller = new Marshaller(pakFile);
   const fakeTag = ({
     tag: {
       reference: correctImport,
     },
   } as unknown) as Shape<typeof FPropertyTag>;
-  marshaller.marshalClassReference(fakeTag);
+  marshaller.marshalClassReferenceV2(fakeTag);
 
   // if (marshaller.getDependencies()[0] === 'FactoryGame/Content/FactoryGame/Buildable/Factory/ConveyorBeltMk1/Build_ConveyorBeltMk1') {
   //   if (blueprintName === 'Build_ConveyorBeltMk1_C') {

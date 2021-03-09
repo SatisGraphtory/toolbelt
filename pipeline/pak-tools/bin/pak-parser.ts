@@ -5,6 +5,7 @@ import * as path from 'path';
 import {FileReader} from '../src/readers/FileReader';
 import {PakFile} from "../src/pak/PakFile";
 import {deserialize, serialize} from "class-transformer";
+import consoleInspect from "../src/util/consoleInspect";
 
 const DEFAULT_INSTALL_DIR = '/mnt/a/Games/Epic/SatisfactoryExperimental';
 
@@ -39,5 +40,14 @@ async function main() {
   // now pakfile is not null;
 
   //
-  const retrievedFiles = await pakFile.getFiles(['FactoryGame/Content/FactoryGame/Schematics/Alternate/New_Update3/Schematic_Alternate_AdheredIronPlate.uasset']);
+  const retrievedFiles = await pakFile.getFiles([
+    'FactoryGame/Content/FactoryGame/Schematics/Research/BPD_ResearchTree_AlienOrganisms.uasset'
+  ]);
+
+  consoleInspect(retrievedFiles[0]!.uexports.map(exp => {
+    return {
+      type: exp.exportTypes,
+      list: exp.propertyList
+    }
+  }));
 }

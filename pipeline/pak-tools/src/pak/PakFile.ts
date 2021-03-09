@@ -22,11 +22,12 @@ export enum PakVersion {
   DeleteRecords = 6,
   EncryptionKeyGuid = 7,
   FNameBasedCompressionMethod = 8,
-  PakFileVersionFrozenIndex= 9,
-  PakFileLatestButUnknown = 10
+  FrozenIndex= 9,
+  PathHashIndex = 10,
+  FNV64BugFix = 11
 }
 
-export const LatestPakVersion = PakVersion.PakFileLatestButUnknown;
+export const LatestPakVersion = PakVersion.FrozenIndex;
 
 /**
  * Parser and content of a .pak file.
@@ -161,7 +162,6 @@ export class PakFile {
 
     const header = await headerReader.read(FPakEntry(version));
 
-
     this.checkEntries(filename, entry, header);
 
     const reader = new ChildReader(headerReader, headerReader.position, entry.size);
@@ -261,13 +261,19 @@ export class PakFile {
     let progress = 0;
 
     for (const file of [...uAssetFileSet]) {
-      const packageDetails = await this.getPackage(file);
-
-      allFiles.push(packageDetails);
-      progress++;
-      process.stderr.write(
-        `Processing: ${(Math.round((progress / numFilesToGet) * 10000) / 100).toFixed(2)}% (${progress}/${numFilesToGet}) ${packageDetails.uasset.filename}\n`,
-      );
+      // TODO: remove redundancy;
+      if (this.packageCache.has(file)) {
+        const packageDetails = await this.getPackage(file);
+        allFiles.push(packageDetails);
+        progress++;
+      } else {
+        const packageDetails = await this.getPackage(file);
+        allFiles.push(packageDetails);
+        progress++;
+        process.stderr.write(
+          `Processing: ${(Math.round((progress / numFilesToGet) * 10000) / 100).toFixed(2)}% (${progress}/${numFilesToGet}) ${packageDetails.uasset.filename}\n`,
+        );
+      }
     }
 
     return allFiles;

@@ -3,6 +3,11 @@ import {paths} from '@local/paths';
 import fs from "fs";
 import * as path from 'path';
 import * as SatisfactoryEnums from '../../../../../.DataLanding/interfaces/enums';
+import {findJsonObject, getJsonForObject} from "../loader/jsonLoader";
+import {PakFile} from "../../pak/PakFile";
+import {Marshaller} from "../marshaller/marshaller";
+import {Shape} from "../../util/parsers";
+import {FPropertyTag} from "../../pak/structs/UScript/FPropertyTag";
 
 function cleanString(input: string) {
   let output = "";
@@ -14,53 +19,49 @@ function cleanString(input: string) {
 
   return output;
 }
-
+//
 function cleanNativeClassName(name: string) {
   return name.match(/Class'\/Script\/FactoryGame\.([A-Za-z]+)'/)![1];
 }
-
-function cleanClassInternalName(name: string) {
-  const regex = /((Build)|(Desc)|(ResourceSink)|(Schematic)|(Research)|(Recipe)|(BP)|(Equip))_([A-Za-z_\-0-9]+)_C/;
-  const matches = name.match(regex);
-  if (!matches) {
-    throw new Error(`Cannot clean classInternalName: ${name}`)
-  }
-  // const type = matches[1];
-  // const innerName = matches[10];
-  return matches[0];
-}
-
-const classNamesMap = new Map<string, any>();
-const instanceValues = new Map<string, Map<string, any>>();
-
-function findAllEnumNames() {
-
-}
+//
+// function cleanClassInternalName(name: string) {
+//   const regex = /((Build)|(Desc)|(ResourceSink)|(Schematic)|(Research)|(Recipe)|(BP)|(Equip))_([A-Za-z_\-0-9]+)_C/;
+//   const matches = name.match(regex);
+//   if (!matches) {
+//     throw new Error(`Cannot clean classInternalName: ${name}`)
+//   }
+//   // const type = matches[1];
+//   // const innerName = matches[10];
+//   return matches[0];
+// }
 
 const enumMap = new Map<string, number>();
 
 for (const [enumName, enumValues] of Object.entries(SatisfactoryEnums)) {
   const allEnumValues = Object.values(enumValues).filter((item: any) => typeof item !== 'number');
   for (const enm of allEnumValues) {
+    // if (enumMap.has(enm)) {
+    //   throw new Error("Already has enum " + enm);
+    // }
     enumMap.set(enm, enumValues[enm] as unknown as number);
   }
 }
 
-function resolvePropertyValue(propertyValue: any): any {
+function resolvePropertyValue(propertyValue: any, pakFile: PakFile, parsedRef: any = null): any {
 
   // Null string;
   if (!propertyValue) return null;
 
   if (Array.isArray(propertyValue)) {
     if (propertyValue.length > 0) {
-      return propertyValue.map((item: any) => resolvePropertyValue(item))
+      return propertyValue.map((item: any) => resolvePropertyValue(item, pakFile,parsedRef?.items ? parsedRef.items : null))
     }
 
     return propertyValue;
   } else if (typeof propertyValue === 'object') {
     const resultObject = new Map<string, any>();
     for (const [key, entry] of Object.entries(propertyValue)) {
-      resultObject.set(key, resolvePropertyValue(entry));
+      resultObject.set(key, resolvePropertyValue(entry, pakFile));
     }
 
     return resultObject;
@@ -77,9 +78,25 @@ function resolvePropertyValue(propertyValue: any): any {
       return propertyValue.match(/^((True)|(False))$/)![1] === 'True'
     } else if (enumMap.has(propertyValue)) {
       // Has  an enum assigned to it
-      return enumMap.get(propertyValue)!
+      // return enumMap.get(propertyValue)!
+      // Return the string value of the enum for now
+      if (!parsedRef) throw new Error("There's no parsedRef to resolve this enum!");
+      const enumType = parsedRef['$ref'].replace(/#\/definitions\//, '');
+      const enumMap = (SatisfactoryEnums as any)[enumType];
+      if (enumMap[propertyValue] === undefined) {
+        throw new Error("Undefined enum found: " + propertyValue);
+      }
+      return enumMap[propertyValue];
     } else if (/^[\w\s]+/.test(propertyValue)) {
       // Simple string property value
+      if (propertyValue.startsWith("BlueprintGenerated")) {
+        const cleanedString = propertyValue.replace(/^BlueprintGeneratedClass\s+/, '');
+
+        const marshaller = new Marshaller(pakFile);
+
+        return marshaller.marshalSoftClassReferenceString(cleanedString);
+      }
+
       return propertyValue;
     } else if (/^\(.*\)$/.test(propertyValue)) {
       if (propertyValue === "(None)") {
@@ -87,7 +104,12 @@ function resolvePropertyValue(propertyValue: any): any {
       }
 
       // Complex tokenizer
-      return tokenize(propertyValue);
+      const tokenizedInput = tokenize(propertyValue);
+      if (tokenizedInput.remainingString === '') {
+        return tokenizedInput.token;
+      } else {
+        throw new Error("Could not tokenize remaining items: " + tokenizedInput)
+      }
     } else {
       console.log(propertyValue);
       throw new Error("Unknown property type");
@@ -355,34 +377,45 @@ function tokenize(input: string): {remainingString: string, charactersRead: numb
   }
 }
 
-async function getDocs(docPath = paths.sourceData.docs) {
+async function getDocs(pakFile: PakFile, docPath = paths.sourceData.docs, ) {
   const docText = await fs.readFileSync(path.join(docPath, 'Docs.json'), 'utf16le')
 
   const cleanedString = cleanString(docText);
 
   const jsonTree = JSON.parse(cleanedString);
 
-  const marshalledDoc = new Map<string, Map<string, any>>();
+  const marshalledDoc = {} as Record<string, Record<string, Record<string, any>>>;
 
   for (const entry of jsonTree) {
-
     // TODO: use this to determine defaults eventually
-    // cleanNativeClassName(entry.NativeClass)
+
+    const marshalledEntries = {} as Record<string, Record<string, any>>;
+    const nativeClassName = cleanNativeClassName(entry.NativeClass)
+    marshalledDoc[nativeClassName] = marshalledEntries;
+
+    const jsonModel = getJsonForObject(findJsonObject(nativeClassName)!);
+
     entry.Classes.map((item: any) => {
-      const classEntry = new Map<string, any>();
-      marshalledDoc.set(item.ClassName, classEntry);
+      const classEntry = {} as Record<string, any>;
+      marshalledEntries[item.ClassName] = classEntry;
       for (const [propertyName, propertyValue] of Object.entries(item)) {
         if (propertyName === 'ClassName') {
           continue;
         }
+        let parsedRef = null;
 
-        let resolvedPropertyValue = resolvePropertyValue(propertyValue);
+        if (jsonModel.properties[propertyName] &&
+          jsonModel.properties[propertyName]['$ref']) {
+          parsedRef = jsonModel.properties[propertyName];
+        }
+
+        let resolvedPropertyValue = resolvePropertyValue(propertyValue, pakFile, parsedRef);
 
         while (resolvedPropertyValue?.token !== undefined) {
           resolvedPropertyValue = resolvedPropertyValue.token
         }
 
-        classEntry.set(propertyName, resolvedPropertyValue)
+        classEntry[propertyName] = resolvedPropertyValue;
       }
     })
   }

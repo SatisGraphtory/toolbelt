@@ -23,8 +23,9 @@ import path from "path";
 import {EmitContext} from "../../headers-to-interfaces/emit";
 import {pretty} from "../src/util/pretty";
 
-import RecipeJson from "../../../.DataLanding/objects/recipes";
+// import RecipeJson from "../../../.DataLanding/objects/recipes";
 import { UFGRecipe } from '../../../.DataLanding/interfaces';
+import {marshallSchematics} from "../src/processor/marshaller/marshallSchematics";
 
 const DEFAULT_INSTALL_DIR = '/mnt/a/Games/Epic/SatisfactoryExperimental';
 
@@ -72,52 +73,66 @@ async function main() {
 
   console.log("Finished loading PakFile")
 
-  const docObjects = await getDocs();
-  //
-  // console.log(util.inspect(docs, false, null, true ));
+  const docObjects = await getDocs(pakFile);
 
-  const fileNameList = Array.from(pakFile.entries.keys());
-  // const schematicFiles = await getAllSchematicFilenames(['FactoryGame/Content/FactoryGame/Schematics/Progression/Schematic_4-1.uexp']);
+  const parsedDocPath = path.join(paths.dataLanding.supplimentary, 'ParsedDocs.json');
 
+  fs.mkdirSync(paths.dataLanding.supplimentary, { recursive: true });
+
+  function replacer(key: string, value: any) {
+    if(value instanceof Map) {
+        return Object.fromEntries(value)
+    } else {
+      return value;
+    }
+  }
+
+  fs.writeFileSync(parsedDocPath, JSON.stringify(docObjects, replacer, 2))
+
+  // const fileNameList = ['FactoryGame/Content/FactoryGame/Schematics/Tutorial/Schematic_Tutorial5.uexp']
+  const fileNameList =  Array.from(pakFile.entries.keys());
   const schematicFiles = await getAllSchematicFilenames(fileNameList);
+  const {schematics, dependencies: schematicDependencies } = await marshallSchematics(pakFile, schematicFiles, docObjects)
+
+  console.log(schematicDependencies);
 
   const recipeFiles = await getAllRecipeFilenames(fileNameList);
 
-  const {recipes, dependencies: recipeDependencies} = await marshallRecipes(pakFile, recipeFiles, docObjects)
-
-  const recipeNativeMap = {} as Record<string, any>;
-
-  for (const [key, value] of recipes.entries()) {
-    recipeNativeMap[key] = value;
-  }
-
-  const destDir = path.resolve(paths.dataLanding.objects);
-
-  fs.rmdirSync(destDir, { recursive: true });
-
-  fs.mkdirSync(destDir, { recursive: true });
-
-  fs.writeFileSync(path.join(destDir, 'recipes.ts'), pretty(`const RecipeJson = ${JSON.stringify(recipeNativeMap)}; export default RecipeJson`), 'utf-8');
-
-  console.log(RecipeJson as Record<string, UFGRecipe>);
-
-  // const schematicPackageFiles = await getSchematics(pakFile, schematicFiles);
+  // const {recipes, dependencies: recipeDependencies} = await marshallRecipes(pakFile, recipeFiles, docObjects)
+  // //
+  // const recipeNativeMap = {} as Record<string, any>;
   //
-  // for (const schematicFile of schematicPackageFiles) {
-  //   const resolvedObject = await resolveExports(pakFile, schematicFile, docObjects);
+  // for (const [key, value] of recipes.entries()) {
+  //   recipeNativeMap[key] = value;
   // }
-  // const loadFile = await pakFile.getFiles(['FactoryGame/Content/FactoryGame/Buildable/Factory/ConveyorBeltMk5/Build_ConveyorBeltMk5.uexp']);
-  // const loadFile = await pakFile.getFiles(['FactoryGame/Content/FactoryGame/Buildable/Factory/MinerMk3/Build_MinerMk3.uexp']);
+  //
+  // const destDir = path.resolve(paths.dataLanding.objects);
+  //
+  // fs.rmdirSync(destDir, { recursive: true });
+  //
+  // fs.mkdirSync(destDir, { recursive: true });
+  //
+  // fs.writeFileSync(path.join(destDir, 'recipes.ts'), pretty(`const RecipeJson = ${JSON.stringify(recipeNativeMap)}; export default RecipeJson`), 'utf-8');
+  //
+  // // console.log(RecipeJson as Record<string, UFGRecipe>);
+  //
+  // // const schematicPackageFiles = await getSchematics(pakFile, schematicFiles);
+  // //
+  // // for (const schematicFile of schematicPackageFiles) {
+  // //   const resolvedObject = await resolveExports(pakFile, schematicFile, docObjects);
+  // // }
+  // // const loadFile = await pakFile.getFiles(['FactoryGame/Content/FactoryGame/Buildable/Factory/ConveyorBeltMk5/Build_ConveyorBeltMk5.uexp']);
+  // // const loadFile = await pakFile.getFiles(['FactoryGame/Content/FactoryGame/Buildable/Factory/MinerMk3/Build_MinerMk3.uexp']);
+  //
+  // // const resolvedObject = await resolveExports(pakFile, loadFile[0]);
+  // // console.log(resolvedObject);
+  //
+  // //TODO: try out recipe for marshaller (ItemClass)
+  //
+  // console.log("Cleaning up: ")
+  // console.log("Unresolved exports:", unresolvedExports);
 
-  // const resolvedObject = await resolveExports(pakFile, loadFile[0]);
-  // console.log(resolvedObject);
-
-  //TODO: try out recipe for marshaller (ItemClass)
-
-  console.log("Cleaning up: ")
-  console.log("Unresolved exports:", unresolvedExports);
-
-  process.exit();
+  // process.exit();
 }
 
 

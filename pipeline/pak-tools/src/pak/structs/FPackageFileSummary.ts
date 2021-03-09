@@ -24,7 +24,6 @@ export function FPackageFileSummary(pakVersion: PakVersion) {
       fileVersion: await reader.read(Int32),
       fileVersionLicensee: await reader.read(Int32),
       customVersions: await reader.read(TArray(FCustomVersion)),
-      unknownBytes: pakVersion > PakVersion.PakFileVersionFrozenIndex ? await reader.readBytes(3) : 0,
       totalHeaderSize: await reader.read(Int32),
       folderName: await reader.read(UnrealString),
       packageFlags: await reader.read(UInt32),

@@ -30,13 +30,13 @@ export function FPakInfo(version: PakVersion) {
       indexHash: await reader.readBytes(20),
     };
 
-    if (version >= PakVersion.PakFileVersionFrozenIndex) {
+    if (info.version >= PakVersion.FrozenIndex) {
       await reader.read(UInt8);
     }
 
     const compressionMethods = [] as (string | null)[];
     // https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/PakFile/Public/IPlatformFilePak.h#L70-L73
-    if (version >= PakVersion.FNameBasedCompressionMethod) {
+    if (info.version >= PakVersion.FNameBasedCompressionMethod) {
       compressionMethods.push(await reader.read(FixedCString(32)));
       compressionMethods.push(await reader.read(FixedCString(32)));
       compressionMethods.push(await reader.read(FixedCString(32)));
@@ -69,8 +69,8 @@ export function FPakInfoSize(version: PakVersion) {
 
   if (version >= PakVersion.EncryptionKeyGuid) size += GuidSize;
   if (version >= PakVersion.FNameBasedCompressionMethod) size += 32 * 4;
-  if (version >= PakVersion.PakFileVersionFrozenIndex) size += 1;
-  if (version >= PakVersion.PakFileLatestButUnknown) size += 32;
+  if (version >= PakVersion.FrozenIndex) size += 1;
+  if (version >= PakVersion.FrozenIndex) size += 32;
 
   return size;
 }

@@ -25,9 +25,9 @@ export class UExports {
   }
 
   async initialize() {
-    if (this.pakVersion > PakVersion.PakFileVersionFrozenIndex) {
-      await this.reader.readBytes(3);
-    }
+    // if (this.pakVersion > PakVersion.PakFileVersionFrozenIndex) {
+    //   await this.reader.readBytes(3);
+    // }
 
     this.propertyList = await readFPropertyTagLoop(this.reader, this.asset);
 
