@@ -6,7 +6,7 @@ import {FString} from "../../../containers/FString";
 import {FFormatArgumentValue} from "./FFormatArgumentValue";
 
 enum ETextHistoryType {
-  None = -1,
+  None = 255,
   Base = 0,
   NamedFormat,
   OrderedFormat,
@@ -41,6 +41,7 @@ export function FText(names: NameMap) {
     // These are flags
     await reader.read(UInt32);
     const historyType = await reader.read(UInt8);
+
     switch (historyType) {
       case ETextHistoryType.Base:
         return {
@@ -76,14 +77,17 @@ export function FText(names: NameMap) {
           TableId: await reader.read(FName(names)),
           Key: await reader.read(FString),
         };
+      case ETextHistoryType.None:
+        return {
+          CultureInvariantString: await reader.read(Int32) !== 0 ? await reader.read(FString) : null
+        };
       case ETextHistoryType.ArgumentFormat:
       case ETextHistoryType.AsDate:
       case ETextHistoryType.AsTime:
       case ETextHistoryType.Transform:
       case ETextHistoryType.TextGenerator:
-        throw new Error('History type ' + historyType + ' not supported');
       default:
-        return null;
+        throw new Error('Possibly history type ' + historyType + ' not supported');
     }
   };
 }

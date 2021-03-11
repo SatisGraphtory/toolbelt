@@ -5,13 +5,14 @@ import {Parser} from "../util/parsers";
 type ReadTracker = {
   read: number;
   child: ReadTracker | null;
+  originalPosition: number;
 };
 
 export abstract class Reader {
   abstract size: number;
   abstract async readBytesAt(position: number, length: number): Promise<Buffer>;
 
-  private readTracker: ReadTracker = { read: 0, child: null };
+  private readTracker: ReadTracker = { read: 0, child: null, originalPosition: 0 };
 
   private _position = 0;
 
@@ -59,6 +60,7 @@ export abstract class Reader {
 
   trackReads() {
     this.readTracker = {
+      originalPosition: this.position,
       read: 0,
       child: this.readTracker,
     };

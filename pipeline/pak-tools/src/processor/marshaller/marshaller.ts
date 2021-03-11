@@ -3,7 +3,7 @@ import {FPropertyTag} from "../../pak/structs/UScript/FPropertyTag";
 import {classReference} from "../../../../headers-to-interfaces/emit/native/references";
 import {getJsonForObject} from "../loader/jsonLoader";
 import {UScriptArray, UScriptArrayMetaData} from "../../pak/structs/UScript/UScriptStrutTypes/UScriptArray";
-import {resolveSlug, resolveSlugFromPackageReference} from "../resolvers/resolveSlugs";
+import {resolveSlugFromPackageReference} from "../resolvers/resolveSlugs";
 import {PakFile} from "../../pak/PakFile";
 import consoleInspect from "../../util/consoleInspect";
 import * as SatisfactoryEnums from '../../../../../.DataLanding/interfaces/enums';
@@ -17,34 +17,6 @@ export class Marshaller {
 
   getDependencies(): string[] {
     return [...this.dependencies];
-  }
-
-  private getPropertyMetaFromClassMeta(propertyName: string, classMeta: any) {
-    const propertyMeta = classMeta?.properties[propertyName];
-    if (propertyMeta && propertyMeta.type) {
-      return propertyMeta.type
-    }
-
-    return undefined;
-  }
-
-  private getDefaultFromMetaType(propertyName: string, classMeta: any) {
-    const type = this.getPropertyMetaFromClassMeta(propertyName, classMeta)
-    if (type !== undefined) {
-      switch (type) {
-        case 'boolean':
-          return false;
-        case 'array':
-          return [];
-        case 'number':
-          return 0;
-        default:
-          console.error("Default type not implemented for type", type)
-          return undefined;
-      }
-    } else {
-      return undefined;
-    }
   }
 
   private static defaultsAreEqual(a: any, b: any) {
@@ -64,11 +36,7 @@ export class Marshaller {
       return true;
     }
 
-    if (a?.size === 0 && b?.size === 0) {
-      return true;
-    }
-
-    return false
+    return a?.size === 0 && b?.size === 0;
   }
 
   missingDependencies = new Map<string, any>();
@@ -94,6 +62,9 @@ export class Marshaller {
               break;
             case 'object':
               this.missingDependencies.set(dependencyKey, null);
+              break;
+            case 'boolean':
+              this.missingDependencies.set(dependencyKey, false);
               break;
             case 'string':
               if (dependencyValue.toLowerCase() === 'true' || dependencyValue.toLowerCase() == 'false') {
@@ -156,11 +127,11 @@ export class Marshaller {
   }
 
 
-  marshalFromPropertyListV2<T>(propertyList: Shape<typeof FPropertyTag>[],
-                               className: string,
-                               docObject: Record<string, any>,
-                               topLevel = false
-  ): T {
+  async marshalFromPropertyList<T>(propertyList: Shape<typeof FPropertyTag>[],
+                                   className: string,
+                                   docObject: Record<string, any>,
+                                   topLevel = false
+  ): Promise<T> {
 
 
     let namesToProcess = new Set<string>();
@@ -178,7 +149,7 @@ export class Marshaller {
     for (const prop of propertyList) {
       const propName = prop?.name as string;
       completeKeySet.delete(propName);
-      (marshalledObject as any)[propName] = this.marshalPropertyByPakTypeV2(prop, docObject);
+      (marshalledObject as any)[propName] = await this.marshalPropertyByPakType(prop, docObject);
       this.allSeenPropertyKeys.add(propName)
     }
 
@@ -201,7 +172,7 @@ export class Marshaller {
     return marshalledObject;
   }
 
-  private marshalArrayPropertyV2(property: Shape<typeof FPropertyTag>,
+  private async marshalArrayProperty(property: Shape<typeof FPropertyTag>,
                                  docObject: Record<string, any>) {
     const {innerType} = property?.tagMetaData as Shape<typeof UScriptArrayMetaData>;
 
@@ -209,9 +180,9 @@ export class Marshaller {
 
     for (const arrayEntry of property?.tag as Shape<typeof UScriptArray>) {
       if (Array.isArray(arrayEntry)) {
-        returnedArray.push(this.marshalFromPropertyListV2<any>(arrayEntry, innerType, docObject))
+        returnedArray.push(await this.marshalFromPropertyList<any>(arrayEntry, innerType, docObject))
       } else {
-        const parsedArrayItem = this.marshalPropertyByPakTypeV2({
+        const parsedArrayItem = await this.marshalPropertyByPakType({
           tag: arrayEntry,
           propertyType: innerType,
           name: "DUMMY_INVALID_NAME"
@@ -226,19 +197,19 @@ export class Marshaller {
     return returnedArray;
   }
 
-  public marshalSoftClassReferenceString(objectPath: string) {
+  public async marshalSoftClassReferenceString(objectPath: string) {
     const classNameParts = objectPath.split('.');
 
     classNameParts.pop();
 
-    return this.marshalClassReferenceTraversal({
+    return await this.marshalClassReferenceTraversal({
       objectName: classNameParts.join('.')
     });
   }
 
 
 
-  private marshalStructProperty(property: Shape<typeof FPropertyTag>, docObject: Record<string, any>) {
+  private async marshalStructProperty(property: Shape<typeof FPropertyTag>, docObject: Record<string, any>) {
     const propertyMap = {} as Record<string, any>;
 
     if (Array.isArray(property?.tag)) {
@@ -248,17 +219,17 @@ export class Marshaller {
 
             // We need to handle structs a little bit differently
             if (subProperty.propertyType === 'StructProperty') {
-              for(let [retrievedKey, retrievedValue] of Object.entries(this.marshalStructProperty(subProperty, docObject))) {
+              for(let [retrievedKey, retrievedValue] of Object.entries(await this.marshalStructProperty(subProperty, docObject))) {
                 if (propertyMap[retrievedKey] !== undefined) {
                   throw new Error("This property map already has the key " + retrievedKey);
                 }
                 propertyMap[retrievedKey] =  retrievedValue;
               }
             } else {
-              propertyMap[subProperty!.name] = this.marshalPropertyByPakTypeV2(subProperty, docObject);
+              propertyMap[subProperty!.name] = await this.marshalPropertyByPakType(subProperty, docObject);
             }
           } else {
-            this.marshalPropertyByPakTypeV2((property!.tag as any), docObject);
+            await this.marshalPropertyByPakType((property!.tag as any), docObject);
             break;
           }
         }
@@ -267,7 +238,7 @@ export class Marshaller {
       }
     } else {
       if (property?.tag?.tagMetaData !== undefined && property?.tag?.propertyGuid !== undefined) {
-        propertyMap[property!.name] = this.marshalPropertyByPakTypeV2(property.tag, docObject);
+        propertyMap[property!.name] = await this.marshalPropertyByPakType(property.tag, docObject);
       } else {
         // TODO: set metadata?
         propertyMap[property!.name] = property!.tag;
@@ -278,27 +249,88 @@ export class Marshaller {
   }
 
   // InnerType may be redundant because we pass in some sketchy stuff
-  private marshalPropertyByPakTypeV2(property: Shape<typeof FPropertyTag>,
+  private async marshalPropertyByPakType(property: Shape<typeof FPropertyTag>,
                                      docObject: Record<string, any>, overriddenPropertyType = property?.propertyType) {
     if (!property) return null;
     switch (overriddenPropertyType) {
+      case 'EnumProperty':
+        return this.marshalEnums(property);
+      case 'ArrayProperty':
+        return await this.marshalArrayProperty(property, docObject);
+      case 'ObjectProperty':
+        return await this.marshalClassReference(property);
+      case 'StructProperty':
+        return await this.marshalStructProperty(property, docObject);
+      case 'SoftObjectProperty':
+        return await this.marshalSoftObjectProperty(property);
       case 'TextProperty':
       case 'BoolProperty':
       case 'IntProperty':
       case 'FloatProperty':
+      case 'UInt64Property':
+      case 'ByteProperty':
+      case 'NameProperty':
         return property.tag;
-      case 'EnumProperty':
-        return this.marshalEnums(property);
-      case 'ArrayProperty':
-        return this.marshalArrayPropertyV2(property, docObject);
-      case 'ObjectProperty':
-        return this.marshalClassReferenceV2(property);
-      case 'StructProperty':
-        return this.marshalStructProperty(property, docObject);
       default:
-        console.log(overriddenPropertyType, property);
-        throw new Error("Unknown propertyType " + overriddenPropertyType)
+        if (property.tag === [] || property.tag === {}) return property.tag;
+        // if (typeof property.tag !== 'string' && typeof property.tag !== 'number') {
+        //   console.log("Unknown property type", overriddenPropertyType, property);
+        //   throw new Error("Non string property type!")
+        // }
+        return property.tag;
     }
+  }
+
+  async marshalSoftObjectProperty(property: Shape<typeof FPropertyTag>) {
+    if (property?.tag?.subpath) {
+      console.log(property);
+      throw new Error("Not enough data");
+    }
+
+    if (property?.tag?.assetPathName.startsWith('/Script')) {
+      const filePath = property.tag.assetPathName;
+      if (filePath.indexOf('.') == -1) throw new Error("Unknown script found: " + filePath );
+
+      const filePathParts = filePath.split('.');
+      const fileNameToFind = filePathParts.pop();
+
+      let foundEntry = null as any;
+      for (const entry of this.pakFile.entries.keys()) {
+        if (entry.toLowerCase().includes(fileNameToFind.toLowerCase() + ".")) {
+          console.log(entry, foundEntry);
+          if (foundEntry) throw new Error("Multiple files found for " + fileNameToFind);
+
+          foundEntry = entry
+        }
+      }
+
+      if (foundEntry) {
+        console.log(foundEntry);
+        throw new Error("Okay, what now");
+      } else {
+        for (const entry of this.pakFile.entries.keys()) {
+          if (entry.includes(fileNameToFind )) {
+            if (foundEntry) throw new Error("Multiple files found for " + fileNameToFind);
+            foundEntry = entry;
+          }
+        }
+
+        if (foundEntry) {
+          console.log(fileNameToFind);
+          throw new Error("Could not find a suitable thing");
+        } else {
+          return {
+            // In-place replacement of the proper pakfile structure
+            package: filePathParts.join('.'),
+            name: fileNameToFind,
+            slug: await resolveSlugFromPackageReference({package: filePathParts.join('.'),
+              name: fileNameToFind}, this.pakFile)
+          };
+        }
+      }
+    }
+
+    return await this.marshalSoftClassReferenceString(property?.tag?.assetPathName);
   }
 
   marshalEnums(property: Shape<typeof FPropertyTag>) {
@@ -315,7 +347,7 @@ export class Marshaller {
     return (SatisfactoryEnums as any)[namespace][enumName]
   }
 
-  marshalClassReferenceV2(property: Shape<typeof FPropertyTag>): null | classReference<any> {
+  async marshalClassReference(property: Shape<typeof FPropertyTag>): Promise<null | classReference<any>> {
     // It's a classReference
 
     // Invalid
@@ -364,13 +396,13 @@ export class Marshaller {
     // }
 
     if (property?.tag?.reference) {
-      return this.marshalClassReferenceTraversal(property.tag.reference);
+      return await this.marshalClassReferenceTraversal(property.tag.reference);
     }
 
-    return (this.marshalClassReferenceTraversal((property as any)?.reference) as any);
+    return (await this.marshalClassReferenceTraversal((property as any)?.reference) as any);
   }
 
-  parseDependencyAndAddToList(fullPath: string) {
+  async parseDependencyAndAddToList(fullPath: string) {
     const pathParsed = fullPath.split('/');
     const fileNameRaw = pathParsed.pop()!;
     const pathMain = pathParsed.join('/');
@@ -389,11 +421,11 @@ export class Marshaller {
       // In-place replacement of the proper pakfile structure
       package: pathMain,
       name: fileName,
-      slug: resolveSlugFromPackageReference({package: pathMain, name: fileName})
+      slug: await resolveSlugFromPackageReference({package: pathMain, name: fileName}, this.pakFile)
     };
   }
 
-  marshalClassReferenceTraversal(traversalNode: any) {
+  async marshalClassReferenceTraversal(traversalNode: any) {
     if (!traversalNode) return null;
     let usedTraversalNode = traversalNode;
     let previousTraversalNode = null as any;
@@ -420,8 +452,8 @@ export class Marshaller {
       .replace(/^Default__/, '');
 
     for (const entry of this.pakFile.entries.keys()) {
-      if (entry.includes(nameWithoutClassSuffix + ".")) {
-        return this.parseDependencyAndAddToList(entry);
+      if (entry.toLowerCase().includes(nameWithoutClassSuffix.toLowerCase() + ".")) {
+        return await this.parseDependencyAndAddToList(entry);
       }
     }
 
@@ -439,8 +471,8 @@ export class Marshaller {
         .replace(/^Default__/, '');
 
       for (const entry of this.pakFile.entries.keys()) {
-        if (entry.includes(separatedName + ".")) {
-          return this.parseDependencyAndAddToList(entry);
+        if (entry.toLowerCase().includes(separatedName.toLowerCase() + ".")) {
+          return await this.parseDependencyAndAddToList(entry);
         }
       }
 
@@ -452,7 +484,7 @@ export class Marshaller {
       for (const entry of this.pakFile.entries.keys()) {
         const match = imageRegex.exec(entry);
         if (match) {
-          this.parseDependencyAndAddToList(entry);
+          await this.parseDependencyAndAddToList(entry);
           versions.set(parseInt(match[1]), entry);
           found = true;
         }
@@ -460,14 +492,24 @@ export class Marshaller {
 
       if (found) {
         const allVersions = [...versions.keys()].sort();
-        return this.parseDependencyAndAddToList(versions.get(allVersions[0])!);
+        return await this.parseDependencyAndAddToList(versions.get(allVersions[0])!);
       }
 
-      console.log("BOOOOOOO", separatedName, found, separatedName.replace(/\//g, '//') + "_[0-9]+\\.")
+      if (nameWithoutClassSuffix.startsWith('/Script')) return null;
+
+      console.log("Invalid name found", separatedName, found, separatedName.replace(/\//g, '//') + "_[0-9]+\\.")
       console.log(nameWithoutClassSuffix);
       consoleInspect(traversalNode);
       throw new Error("Unimplemented marshaller for non-file");
     } else {
+      for (const entry of this.pakFile.entries.keys()) {
+        if (entry.toLowerCase().includes(nameWithoutClassSuffix.toLowerCase() + ".")) {
+          return await this.parseDependencyAndAddToList(entry);
+        }
+      }
+
+      console.log(nameWithoutClassSuffix, traversalNode)
+
       throw new Error("Really not implemented :(");
     }
   }

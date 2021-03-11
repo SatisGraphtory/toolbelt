@@ -1,4 +1,6 @@
 import {packageReference} from "../../../../headers-to-interfaces/emit/native/references";
+import {PakFile} from "../../pak/PakFile";
+import {UObject} from "../../pak/pakfile/UObject";
 
 export function resolveSlug(name: string, packagePath: string) {
   if (/^Build_(.*)_C$/.test(name)) {
@@ -23,29 +25,33 @@ export function resolveSlug(name: string, packagePath: string) {
   throw new Error("Unknown slug " + name + " with path " + packagePath)
 }
 
-export function createPackageReferenceFromFilename(filePath: string): packageReference<any> {
-  const paths = filePath.split('/');
+export async function resolveSlugFromPath(fullPath: string, pakFile: PakFile) {
+  const pathParsed = fullPath.split('/');
+  const fileNameRaw = pathParsed.pop()!;
+  const pathMain = pathParsed.join('/');
 
-  const fullName = paths.pop()!;
+  let fileName = fileNameRaw;
 
-  const classNameParts = fullName.split('.');
-
-  const className = classNameParts.shift()!;
-
-  const pkg = paths.join('/').replace('/Game/', 'FactoryGame/Content/');
-
-  const packageReference = {
-    name: className,
-    package: pkg
+  if (fileName.indexOf('.') !== -1) {
+    const fileNameList = fileNameRaw.split('.');
+    fileNameList.pop();
+    fileName = fileNameList.join('.')
   }
 
-  return {
-    ...packageReference,
-    slug: resolveSlugFromPackageReference(packageReference)
+  let slug = await resolveSlugFromPackageReference({
+    package: pathMain,
+    name: fileName,
+  }, pakFile, true);
+
+  if (slug === undefined) {
+    throw new Error("Could not make slug from " + fullPath);
   }
+
+  return slug;
 }
-
-export function resolveSlugFromPackageReference(packageReference: packageReference<any>) {
+export async function resolveSlugFromPackageReference(packageReference: packageReference<any>,
+                                                pakFile: PakFile,
+                                                createBackupSlug = true) {
   const {name, package: packagePath} = packageReference;
 
   if (/^FactoryGame\/Content\/FactoryGame\/Buildable/.test(packagePath)) {
@@ -107,6 +113,22 @@ export function resolveSlugFromPackageReference(packageReference: packageReferen
       return 'building-build-gun';
     case 'BP_WorkshopComponent_C':
       return 'building-workshop'
+  }
+
+  // const schematicEntriesRaw = (await pakFile.getFiles(schematicFiles)).filter(item => {
+  //   return item instanceof UObject;
+  // }) as UObject[];
+
+  if (createBackupSlug) {
+    const pathParts = ['slug::nonstandard'];
+    const namePart = name.replace(/_C$/, '').replace(/_/g, '-');
+    const packagePathString = packagePath.replace('FactoryGame/Content/FactoryGame/', '').replace(/[\/_]/g, "-");
+    if (packagePathString) {
+      pathParts.push(packagePathString.toLowerCase())
+    }
+    pathParts.push(namePart.toLowerCase())
+
+    return pathParts.join('-').replace(/--+]/g, '-');
   }
 
   //TODO: probably fix this somehow

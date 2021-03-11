@@ -17,6 +17,7 @@
     "interfaces-to-json": "ts-node --project ./pipeline/interfaces-to-json/tsconfig.json ./pipeline/interfaces-to-json/bin/interfaces-to-json",
     "checkout-source-data": "./scripts/checkout.sh SourceData",
     "checkout-data-landing": "./scripts/checkout.sh DataLanding",
+    "checkout-data-warehouse": "./scripts/checkout.sh DataWarehouse",
     "checkout": "npm-run-all checkout-*",
     "copy-metadata-master": "ts-node --project ./pipeline/pak-tools/tsconfig.json ./pipeline/pak-tools/bin/copy-provided-data",
     "copy-metadata-experimental": "cross-env EXPERIMENTAL=true ts-node --project ./pipeline/pak-tools/tsconfig.json ./pipeline/pak-tools/bin/copy-provided-data",

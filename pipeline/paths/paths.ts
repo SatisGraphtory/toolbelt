@@ -14,7 +14,6 @@ export namespace dataLanding {
   export const interfaces = path.join(root, 'interfaces');
   export const json = path.join(root, 'json');
   export const objects = path.join(root, 'objects');
-  export const supplimentary = path.join(root, 'supplimentary');
 }
 
 export namespace toolBelt {
@@ -22,5 +21,6 @@ export namespace toolBelt {
 }
 
 export namespace dataWarehouse {
-  // export const root = path.join(engineeringRoot, '.data-warehouse');
+  export const root = path.join(engineeringRoot, '.DataWarehouse');
+  export const supplimentary = path.join(root, 'supplimentary');
 }

@@ -3,6 +3,6 @@ import {Reader} from "../../../../readers/Reader";
 
 export async function FMovieSceneFrameRange(reader: Reader) {
   return {
-    Value: await reader.read(TRange),
+    Value: await reader.read(TRange(4)),
   };
 }

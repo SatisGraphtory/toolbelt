@@ -1,9 +1,11 @@
 import { TRangeBound } from './TRangeBound';
 import {Reader} from "../../../../readers/Reader";
 
-export async function TRange(reader: Reader) {
-  return {
-    LowerBound: await reader.read(TRangeBound),
-    UpperBound: await reader.read(TRangeBound),
-  };
+export function TRange(readSize: number) {
+  return async function TRangeReader(reader: Reader) {
+    return {
+      LowerBound: await reader.read(TRangeBound(readSize)),
+      UpperBound: await reader.read(TRangeBound(readSize)),
+    };
+  }
 }

@@ -105,6 +105,19 @@ export async function findMainClass(exports: UExports[]) {
   return exports[0];
 }
 
+export async function findAdditionalClasses(exports: UExports[]) {
+  if (!exports.length) return null;
+  // We don't want to filter
+  const exportTypes = exports.map((item: any) => item.exportTypes);
+  // The actual instances comes after the BlueprintGeneratedClass.
+  const index = exportTypes.indexOf('BlueprintGeneratedClass');
+  if (index + 1 < exportTypes.length && index >= 0) {
+    return exports.slice(index + 2).filter(exp => exp.exportTypes !== 'Function')
+  }
+
+  return exports.slice(1).filter(exp => exp.exportTypes !== 'Function')
+}
+
 // https://github.com/EpicGames/UnrealEngine/blob/f8f4b403eb682ffc055613c7caf9d2ba5df7f319/Engine/Source/Runtime/Engine/Private/BlueprintGeneratedClass.cpp#L612
 // https://github.com/EpicGames/UnrealEngine/blob/f8f4b403eb682ffc055613c7caf9d2ba5df7f319/Engine/Source/Runtime/Engine/Private/BlueprintGeneratedClass.cpp#L415
 export async function resolveExports(pakFile: PakFile, baseObject: UObject, depth = 0) {
@@ -137,11 +150,7 @@ export async function resolveExports(pakFile: PakFile, baseObject: UObject, dept
 
           const referencedPakFile = resolveReferenceName(baseObject, exportType, pakFile);
 
-          const referencedFileList = (
-            await pakFile.getFiles([...sanitizeDependencies(pakFile, new Set([referencedPakFile]))])
-          ).filter(item => {
-            return item instanceof UObject;
-          }) as UObject[];
+          const referencedFileList = await pakFile.getFiles([...sanitizeDependencies(pakFile, new Set([referencedPakFile]))])
 
           if (!referencedFileList.length) {
             if (!referencedPakFile.startsWith('/Script/')) {
@@ -216,7 +225,7 @@ export async function resolveExports(pakFile: PakFile, baseObject: UObject, dept
             if (modifiedProperties.has(draftStateExport.uuid)) continue;
             if (draftStateExport.exportTypes === propertyType) {
               foundProperty = true;
-              console.log("Merging property:", propertyType)
+              console.debug("Merging property:", propertyType)
               modifiedProperties.add(draftStateExport.uuid)
               draftStateExport.propertyList = await resolvePropertyListMerges(property.propertyList, draftStateExport.propertyList);
               break;

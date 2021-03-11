@@ -18,6 +18,8 @@ export function MapProperty(
   tagMetaData: Shape<typeof MapPropertyTagMetaData>,
   asset: UAsset,
   depth: number,
+  readSize: number,
+  trackingReader: Reader
 ) {
   return async function MapPropertyParser(reader: Reader) {
     const numKeysToRemove = await reader.read(Int32);
@@ -35,7 +37,7 @@ export function MapProperty(
     };
 
     for (let i = 0; i < numKeysToRemove; i++) {
-      console.log('Removed key: ', await reader.read(UScriptStruct(nameMeta, asset, depth + 1)));
+      console.log('Removed key: ', await reader.read(UScriptStruct(nameMeta, asset, depth + 1, readSize, trackingReader)));
     }
 
     const numEntries = await reader.read(Int32);
@@ -43,9 +45,9 @@ export function MapProperty(
     const tag = {} as any;
 
     for (let i = 0; i < numEntries; i++) {
-      const name = ((await reader.read(UScriptStruct(nameMeta, asset, depth + 1))) as unknown) as string;
+      const name = ((await reader.read(UScriptStruct(nameMeta, asset, depth + 1, readSize, trackingReader))) as unknown) as string;
 
-      tag[name] = await reader.read(UScriptStruct(keyMeta, asset, depth + 1));
+      tag[name] = await reader.read(UScriptStruct(keyMeta, asset, depth + 1, readSize, trackingReader));
     }
 
     return tag;

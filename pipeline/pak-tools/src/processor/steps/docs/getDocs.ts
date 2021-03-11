@@ -2,12 +2,10 @@
 import {paths} from '@local/paths';
 import fs from "fs";
 import * as path from 'path';
-import * as SatisfactoryEnums from '../../../../../.DataLanding/interfaces/enums';
-import {findJsonObject, getJsonForObject} from "../loader/jsonLoader";
-import {PakFile} from "../../pak/PakFile";
-import {Marshaller} from "../marshaller/marshaller";
-import {Shape} from "../../util/parsers";
-import {FPropertyTag} from "../../pak/structs/UScript/FPropertyTag";
+import * as SatisfactoryEnums from '../../../../../../.DataLanding/interfaces/enums';
+import {findJsonObject, getJsonForObject} from "../../loader/jsonLoader";
+import {PakFile} from "../../../pak/PakFile";
+import {Marshaller} from "../../marshaller/marshaller";
 
 function cleanString(input: string) {
   let output = "";
@@ -43,25 +41,28 @@ for (const [enumName, enumValues] of Object.entries(SatisfactoryEnums)) {
     // if (enumMap.has(enm)) {
     //   throw new Error("Already has enum " + enm);
     // }
-    enumMap.set(enm, enumValues[enm] as unknown as number);
+    enumMap.set(enm as any, enumValues[enm as any] as unknown as number);
   }
 }
 
-function resolvePropertyValue(propertyValue: any, pakFile: PakFile, parsedRef: any = null): any {
+async function resolvePropertyValue(propertyValue: any, pakFile: PakFile, parsedRef: any = null): Promise<any> {
 
   // Null string;
   if (!propertyValue) return null;
 
   if (Array.isArray(propertyValue)) {
     if (propertyValue.length > 0) {
-      return propertyValue.map((item: any) => resolvePropertyValue(item, pakFile,parsedRef?.items ? parsedRef.items : null))
+      const returnedValueMap = [];
+      for (const item of propertyValue) {
+        returnedValueMap.push(await resolvePropertyValue(item, pakFile,parsedRef?.items ? parsedRef.items : null))
+      }
     }
 
     return propertyValue;
   } else if (typeof propertyValue === 'object') {
     const resultObject = new Map<string, any>();
     for (const [key, entry] of Object.entries(propertyValue)) {
-      resultObject.set(key, resolvePropertyValue(entry, pakFile));
+      resultObject.set(key, await resolvePropertyValue(entry, pakFile));
     }
 
     return resultObject;
@@ -94,7 +95,7 @@ function resolvePropertyValue(propertyValue: any, pakFile: PakFile, parsedRef: a
 
         const marshaller = new Marshaller(pakFile);
 
-        return marshaller.marshalSoftClassReferenceString(cleanedString);
+        return await marshaller.marshalSoftClassReferenceString(cleanedString);
       }
 
       return propertyValue;
@@ -395,7 +396,7 @@ async function getDocs(pakFile: PakFile, docPath = paths.sourceData.docs, ) {
 
     const jsonModel = getJsonForObject(findJsonObject(nativeClassName)!);
 
-    entry.Classes.map((item: any) => {
+    for (const item of entry.Classes) {
       const classEntry = {} as Record<string, any>;
       marshalledEntries[item.ClassName] = classEntry;
       for (const [propertyName, propertyValue] of Object.entries(item)) {
@@ -409,7 +410,7 @@ async function getDocs(pakFile: PakFile, docPath = paths.sourceData.docs, ) {
           parsedRef = jsonModel.properties[propertyName];
         }
 
-        let resolvedPropertyValue = resolvePropertyValue(propertyValue, pakFile, parsedRef);
+        let resolvedPropertyValue = await resolvePropertyValue(propertyValue, pakFile, parsedRef);
 
         while (resolvedPropertyValue?.token !== undefined) {
           resolvedPropertyValue = resolvedPropertyValue.token
@@ -417,7 +418,7 @@ async function getDocs(pakFile: PakFile, docPath = paths.sourceData.docs, ) {
 
         classEntry[propertyName] = resolvedPropertyValue;
       }
-    })
+    }
   }
 
   return Promise.resolve(marshalledDoc);

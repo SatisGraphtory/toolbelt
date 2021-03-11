@@ -42,8 +42,6 @@ export function getJsonForObjectStrict(className: string) {
   return jsonRetriever(className as string);
 }
 
-let i = 0;
-
 const jsonRetriever = (className: string) => {
   const data = (JSONFiles as any)[className];
   if (!data) {
@@ -75,7 +73,7 @@ export const findPossibleClasses = (names: Set<string>) => {
   })
 
   if (matches.length === 1) {
-    console.error("Found singular bruteforce match ", matches[0], "for", names);
+    console.error("Found singular bruteforce match", matches[0], "for", names);
   }
 
   return matches;

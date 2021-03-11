@@ -17,7 +17,8 @@ import {FString} from "../../containers/FString";
 import {Double, Float} from "../../primitive/decimals";
 import {InterfaceProperty} from "./properties/InterfaceProperty";
 import {ByteProperty, BytePropertyTagMetaData} from "./properties/ByteProperty";
-import {SetPropertyTagMetaData} from "./properties/SetProperty";
+import {SetProperty, SetPropertyTagMetaData} from "./properties/SetProperty";
+import {FieldPathProperty} from "./properties/FieldPathProperty";
 
 export type TagMetaData =
   | Shape<typeof StructPropertyTagMetaData>
@@ -106,7 +107,7 @@ export function FPropertyTag(asset: UAsset, shouldRead: boolean, depth: number) 
 
     if (shouldRead && baseTag.size > 0) {
       reader.trackReads();
-      tag = await reader.read(Tag(asset, baseTag.propertyType, tagMetaData as TagMetaData, depth + 1));
+      tag = await reader.read(Tag(asset, baseTag.propertyType, tagMetaData as TagMetaData, depth + 1, baseTag.size, reader));
 
       if (reader.getTrackedBytesRead() !== baseTag.size) {
         console.error(
@@ -143,9 +144,10 @@ export function FPropertyTag(asset: UAsset, shouldRead: boolean, depth: number) 
   };
 }
 
-export function Tag(asset: UAsset, propertyType: string, tagMetaData: TagMetaData, depth: number) {
+export function Tag(asset: UAsset, propertyType: string, tagMetaData: TagMetaData, depth: number, readSize: number, trackingReader: Reader) {
   return async function(reader: Reader) {
     let tag = null;
+
     if (propertyType === 'BooleanProperty') {
       // TODO: Should we return the metadata?
     } else if (propertyType === 'BoolProperty') {
@@ -193,12 +195,12 @@ export function Tag(asset: UAsset, propertyType: string, tagMetaData: TagMetaDat
     } else if (propertyType === 'DoubleProperty') {
       tag = await reader.read(Double);
     } else if (propertyType === 'ArrayProperty') {
-      tag = await reader.read(UScriptArray(tagMetaData as Shape<typeof UScriptArrayMetaData>, asset, depth));
+      tag = await reader.read(UScriptArray(tagMetaData as Shape<typeof UScriptArrayMetaData>, asset, depth, readSize, trackingReader));
     } else if (propertyType === 'ObjectProperty') {
       tag = await reader.read(FPackageIndex(asset.imports, asset.exports));
     } else if (propertyType === 'StructProperty') {
       tag = await reader.read(
-        UScriptStruct(tagMetaData as Shape<typeof StructPropertyTagMetaData>, asset, depth),
+        UScriptStruct(tagMetaData as Shape<typeof StructPropertyTagMetaData>, asset, depth, readSize, trackingReader),
       );
     } else if (propertyType === 'InterfaceProperty') {
       tag = await reader.read(InterfaceProperty);
@@ -208,19 +210,26 @@ export function Tag(asset: UAsset, propertyType: string, tagMetaData: TagMetaDat
       tag = await reader.read(FString);
     } else if (propertyType === 'NameProperty') {
       tag = await reader.read(FName(asset.names));
+    } else if (propertyType === 'SetProperty') {
+      tag = await reader.read(
+        SetProperty(tagMetaData as Shape<typeof SetPropertyTagMetaData>, asset, depth, readSize, trackingReader),
+      );
     } else if (propertyType === 'MapProperty') {
-      try {
-        tag = await reader.read(
-          MapProperty(tagMetaData as Shape<typeof MapPropertyTagMetaData>, asset, depth),
-        );
-      } catch (e) {}
+      tag = await reader.read(
+        MapProperty(tagMetaData as Shape<typeof MapPropertyTagMetaData>, asset, depth, readSize, trackingReader),
+      );
     } else if (propertyType === 'DelegateProperty') {
       tag = await reader.read(DelegateProperty(asset.names));
     } else if (propertyType === 'SoftObjectProperty') {
       tag = await reader.read(FSoftObjectPath(asset.names));
     } else if (propertyType === 'MulticastDelegateProperty') {
       tag = await reader.read(Int32);
+    } else if (propertyType === 'MulticastSparseDelegateProperty') {
+      tag = null;
+    } else if (propertyType === 'FieldPathProperty') {
+      tag = await reader.read(FieldPathProperty(asset.names));
     } else {
+      console.log(tagMetaData);
       throw new Error(`Unparsed Property type ${propertyType}`);
     }
 

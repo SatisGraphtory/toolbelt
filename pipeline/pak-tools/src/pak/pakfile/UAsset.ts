@@ -178,6 +178,7 @@ export class UAsset {
   }
 
   getClassNameFromExport(exp: Shape<typeof FObjectExport>) {
+    console.log(this.packageIndexLookupTable.get(exp.classIndex))
     const classObject = this.packageIndexLookupTable.get(exp.templateIndex)?.reference as Shape<
       typeof FObjectImport
       >;

@@ -2,7 +2,7 @@ import { FText } from './FText';
 import {Shape} from "../../../../util/parsers";
 import {Reader} from "../../../../readers/Reader";
 import {FName, NameMap} from "../FName";
-import {ByteBoolean, Int32, UInt32, UInt8} from "../../../primitive/integers";
+import {ByteBoolean, Int32, UInt32, UInt64, UInt8} from "../../../primitive/integers";
 import {Float} from "../../../primitive/decimals";
 import {FPackageIndex} from "../../file/FPackageIndex";
 import {FPropertyTag, Tag} from "../FPropertyTag";
@@ -19,7 +19,8 @@ export function UScriptArrayMetaData(names: NameMap) {
   };
 }
 
-export function UScriptArray(metaData: Shape<typeof UScriptArrayMetaData>, asset: UAsset, depth: number) {
+export function UScriptArray(metaData: Shape<typeof UScriptArrayMetaData>, asset: UAsset, depth: number,
+                             readSize: number, trackingReader: Reader) {
   return async function UScriptArrayParser(reader: Reader) {
     const elementCount = await reader.read(UInt32);
     let tag = null as any;
@@ -49,7 +50,7 @@ export function UScriptArray(metaData: Shape<typeof UScriptArrayMetaData>, asset
       } else if (metaData.innerType == 'SoftObjectProperty') {
         data.push(await reader.read(SoftObjectProperty(asset.names)));
       } else if (metaData.innerType == 'StructProperty') {
-        const innerTag: any = await reader.read(Tag(asset, metaData.innerType, innerTagData, depth + 1));
+        const innerTag: any = await reader.read(Tag(asset, metaData.innerType, innerTagData, depth + 1, readSize, trackingReader));
         if (innerTag) {
           data.push(innerTag);
         }
@@ -61,6 +62,8 @@ export function UScriptArray(metaData: Shape<typeof UScriptArrayMetaData>, asset
         data.push(await reader.read(FString));
       } else if (metaData.innerType === 'FloatProperty') {
         data.push(await reader.read(Float));
+      } else if (metaData.innerType === 'UInt64Property') {
+        data.push(await reader.read(UInt64));
       } else if (metaData.innerType === 'DelegateProperty') {
         data.push(await reader.read(DelegateProperty(asset.names)));
       } else {

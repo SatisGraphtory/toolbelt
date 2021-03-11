@@ -40,7 +40,7 @@ export function resolveReferenceName(baseObject: UObject, blueprintName: string,
       reference: correctImport,
     },
   } as unknown) as Shape<typeof FPropertyTag>;
-  marshaller.marshalClassReferenceV2(fakeTag);
+  marshaller.marshalClassReference(fakeTag);
 
   // if (marshaller.getDependencies()[0] === 'FactoryGame/Content/FactoryGame/Buildable/Factory/ConveyorBeltMk1/Build_ConveyorBeltMk1') {
   //   if (blueprintName === 'Build_ConveyorBeltMk1_C') {

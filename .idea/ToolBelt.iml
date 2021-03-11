@@ -4,9 +4,11 @@
     <exclude-output />
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.DataLanding" />
+      <excludeFolder url="file://$MODULE_DIR$/.DataWarehouse" />
       <excludeFolder url="file://$MODULE_DIR$/.SourceData" />
       <excludeFolder url="file://$MODULE_DIR$/pipeline/image-meta-generator/dist" />
       <excludeFolder url="file://$MODULE_DIR$/pipeline/pak-tools/dist" />
+      <excludeFolder url="file://$MODULE_DIR$/pipeline/pak-tools/dumps" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

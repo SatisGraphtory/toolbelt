@@ -31,7 +31,6 @@
     "cross-env": "^7.0.3",
     "decode-dxt": "^1.0.1",
     "dotenv": "^8.2.0",
-    "dxt-js": "^0.0.3",
     "exiftool-vendored": "^14.0.0",
     "express": "^4.17.1",
     "hot-import": "^0.2.14",

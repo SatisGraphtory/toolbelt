@@ -16,7 +16,7 @@ export class UExports {
   public readonly uuid: string = uuidv4();
 
   constructor(
-    private reader: Reader,
+    protected reader: Reader,
     public asset: UAsset,
     public exportTypes: string,
     private readGuid: boolean,

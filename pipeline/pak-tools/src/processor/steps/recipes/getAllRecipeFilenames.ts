@@ -3,6 +3,8 @@ async function getAllRecipeFilenames(pakEntries: string[]) {
   for (const file of pakEntries) {
     if (file.match(/\/Recipes\/.*Recipe_[A-Za-z_0-9]+\.uexp/g)) {
       recipeFiles.add(file);
+    } else if (file.match(/\/Events\/.*Recipe_[A-Za-z_0-9]+\.uexp/g)) {
+      recipeFiles.add(file);
     }
   }
 

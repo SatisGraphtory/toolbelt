@@ -12,20 +12,24 @@ import * as glob from 'glob';
 import {FileReader} from '../src/readers/FileReader';
 import {PakFile} from "../src/pak/PakFile";
 import {deserialize, serialize} from "class-transformer";
-import getAllSchematicFilenames from "../src/processor/steps/getAllSchematicFilenames";
-import getDocs from "../src/processor/steps/getDocs";
+import getAllSchematicFilenames from "../src/processor/steps/schematics/getAllSchematicFilenames";
+import getDocs from "../src/processor/steps/docs/getDocs";
 import {resolveExports, unresolvedExports} from "../src/processor/resolvers/resolveExports";
-import getSchematics from "../src/processor/steps/schematics/getSchematics";
-import getAllRecipeFilenames from "../src/processor/steps/getAllRecipeFilenames";
-import {marshallRecipes} from "../src/processor/marshaller/marshallRecipes";
+import getAllRecipeFilenames from "../src/processor/steps/recipes/getAllRecipeFilenames";
 import consoleInspect from "../src/util/consoleInspect";
 import path from "path";
 import {EmitContext} from "../../headers-to-interfaces/emit";
 import {pretty} from "../src/util/pretty";
 
 // import RecipeJson from "../../../.DataLanding/objects/recipes";
-import { UFGRecipe } from '../../../.DataLanding/interfaces';
-import {marshallSchematics} from "../src/processor/marshaller/marshallSchematics";
+import { UFGRecipe, UFGSchematic, UFGItemDescriptor, UFGPipeConnectionComponent } from '../../../.DataLanding/interfaces';
+
+import * as SatisFactoryClassInterfaces from '../../../.DataLanding/interfaces';
+
+import {marshallGeneric} from "../src/processor/marshaller/genericMarshaller";
+import getAllItemFilenames from "../src/processor/steps/items/getAllItemFilenames";
+import {guessSubclassesFromJsonClassName} from "../src/processor/steps/json/guessSubclassesFromJsonClassName";
+import getAllBuildableFilenames from "../src/processor/steps/buildables/getAllBuildableFilenames";
 
 const DEFAULT_INSTALL_DIR = '/mnt/a/Games/Epic/SatisfactoryExperimental';
 
@@ -40,7 +44,7 @@ async function main() {
   const pakFilePath = process.env.PAK_PATH || DEFAULT_PAK_PATH;
   const exeFilePath = process.env.EXE_PATH || DEFAULT_EXE_PATH;
 
-  const cachedPakMetadataBaseString: string = "./pak-dump";
+  const cachedPakMetadataBaseString: string = "./dumps/pak-dump";
 
   const version = await utils.exe.getExeVersion(exeFilePath);
 
@@ -52,6 +56,7 @@ async function main() {
   const cachedPakMetadata = `${cachedPakMetadataBaseString}.${version}.json`
 
   const existingFiles = glob.sync(cachedPakMetadataBaseString + '*');
+  fs.mkdirSync("./dumps", { recursive: true })
 
   if (fs.existsSync(cachedPakMetadata)) {
     pakFile = deserialize(PakFile, fs.readFileSync(cachedPakMetadata, 'utf8'));
@@ -75,9 +80,9 @@ async function main() {
 
   const docObjects = await getDocs(pakFile);
 
-  const parsedDocPath = path.join(paths.dataLanding.supplimentary, 'ParsedDocs.json');
+  const parsedDocPath = path.join(paths.dataWarehouse.supplimentary, 'ParsedDocs.json');
 
-  fs.mkdirSync(paths.dataLanding.supplimentary, { recursive: true });
+  fs.mkdirSync(paths.dataWarehouse.supplimentary, { recursive: true });
 
   function replacer(key: string, value: any) {
     if(value instanceof Map) {
@@ -89,49 +94,96 @@ async function main() {
 
   fs.writeFileSync(parsedDocPath, JSON.stringify(docObjects, replacer, 2))
 
+  const pakManifestPath = path.join(paths.dataWarehouse.supplimentary, 'PakEntries.json');
+
+  fs.writeFileSync(pakManifestPath, JSON.stringify([...pakFile.entries.keys()], replacer, 2))
+
   // const fileNameList = ['FactoryGame/Content/FactoryGame/Schematics/Tutorial/Schematic_Tutorial5.uexp']
   const fileNameList =  Array.from(pakFile.entries.keys());
-  const schematicFiles = await getAllSchematicFilenames(fileNameList);
-  const {schematics, dependencies: schematicDependencies } = await marshallSchematics(pakFile, schematicFiles, docObjects)
 
-  console.log(schematicDependencies);
-
-  const recipeFiles = await getAllRecipeFilenames(fileNameList);
-
-  // const {recipes, dependencies: recipeDependencies} = await marshallRecipes(pakFile, recipeFiles, docObjects)
-  // //
-  // const recipeNativeMap = {} as Record<string, any>;
+  // // This is the section handling schematics
+  // const schematicFiles = await getAllSchematicFilenames(fileNameList);
   //
-  // for (const [key, value] of recipes.entries()) {
-  //   recipeNativeMap[key] = value;
+  // const {objectMap: schematicMap, dependencies: schematicDependencies } = await marshallGeneric<UFGSchematic>(pakFile,
+  //   schematicFiles, docObjects, "FGSchematic", "UFGSchematic")
+  //
+  // const recipeFiles = await getAllRecipeFilenames([...fileNameList, ...schematicDependencies]);
+  //
+  // const {objectMap: recipeMap, dependencies: recipeDependencies } = await marshallGeneric<UFGRecipe>(pakFile,
+  //   recipeFiles, docObjects, "FGRecipe", "UFGRecipe")
+  //
+  // const itemFiles = await getAllItemFilenames([...fileNameList]);
+  //
+  //
+  //
+
+
+
+
+  const {objectMap: itemMap, dependencies: itemDependencies } = await marshallGeneric<UFGItemDescriptor>(pakFile,
+    new Set(['FactoryGame/Content/FactoryGame/Interface/UI/InGame/Widget_UseableBase.uasset']), docObjects, "FGItemDescriptor", "UFGItemDescriptor")
+
+
+
+
+
+
+
+
+  //
+  //
+  //
+  // const {objectMap: itemMap, dependencies: itemDependencies } = await marshallGeneric<UFGItemDescriptor>(pakFile,
+  //   itemFiles, docObjects, "FGItemDescriptor", "UFGItemDescriptor")
+  //
+  // const buildableFiles = await getAllBuildableFilenames([...fileNameList]);
+  //
+  // const classes = new Set(guessSubclassesFromJsonClassName("AFGBuildable"));
+  //
+  // const globalClassMap = {} as Record<string, string[]>;
+  //
+  // for (const unrealName of classes) {
+  //   console.log("Processing buildable", unrealName);
+  //   const docName = unrealName.replace(/^A/, '');
+  //   const {objectMap: buildableMap, dependencies: buildableDependencies } = await marshallGeneric<any>(pakFile,
+  //     buildableFiles, docObjects, docName, unrealName)
+  //   const buildableClassKeys =  [...buildableMap.keys()];
+  //   if (buildableClassKeys.length) {
+  //     globalClassMap[unrealName] = buildableClassKeys;
+  //   }
   // }
   //
-  // const destDir = path.resolve(paths.dataLanding.objects);
+  // const classMapPath = path.join(paths.dataWarehouse.supplimentary, 'ClassMap.json');
   //
-  // fs.rmdirSync(destDir, { recursive: true });
-  //
-  // fs.mkdirSync(destDir, { recursive: true });
-  //
-  // fs.writeFileSync(path.join(destDir, 'recipes.ts'), pretty(`const RecipeJson = ${JSON.stringify(recipeNativeMap)}; export default RecipeJson`), 'utf-8');
-  //
-  // // console.log(RecipeJson as Record<string, UFGRecipe>);
-  //
-  // // const schematicPackageFiles = await getSchematics(pakFile, schematicFiles);
-  // //
-  // // for (const schematicFile of schematicPackageFiles) {
-  // //   const resolvedObject = await resolveExports(pakFile, schematicFile, docObjects);
-  // // }
-  // // const loadFile = await pakFile.getFiles(['FactoryGame/Content/FactoryGame/Buildable/Factory/ConveyorBeltMk5/Build_ConveyorBeltMk5.uexp']);
-  // // const loadFile = await pakFile.getFiles(['FactoryGame/Content/FactoryGame/Buildable/Factory/MinerMk3/Build_MinerMk3.uexp']);
-  //
-  // // const resolvedObject = await resolveExports(pakFile, loadFile[0]);
-  // // console.log(resolvedObject);
-  //
-  // //TODO: try out recipe for marshaller (ItemClass)
-  //
-  // console.log("Cleaning up: ")
-  // console.log("Unresolved exports:", unresolvedExports);
+  // fs.writeFileSync(classMapPath, JSON.stringify(globalClassMap, replacer, 2))
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // const {objectMap: buildableMap, dependencies: buildableDependencies } = await marshallGeneric<any>(pakFile,
+  //   buildableFiles, docObjects, "All", "AFGBuildable", true)
+  //
+  // const {objectMap: pipeMap, dependencies: pipeDependencies } = await marshallGeneric<any>(pakFile,
+  //   buildableFiles, docObjects, null, "UFGPipeConnectionComponent", true)
+
+  // consoleInspect(pipeMap);
+
+
+
+  // console.log(classes);
   // process.exit();
 }
 

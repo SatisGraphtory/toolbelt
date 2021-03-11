@@ -267,12 +267,12 @@ export class PakFile {
         allFiles.push(packageDetails);
         progress++;
       } else {
+        process.stderr.write(
+          `Processing: ${(Math.round((progress / numFilesToGet) * 10000) / 100).toFixed(2)}% (${progress}/${numFilesToGet}) ${file}\n`,
+        );
         const packageDetails = await this.getPackage(file);
         allFiles.push(packageDetails);
         progress++;
-        process.stderr.write(
-          `Processing: ${(Math.round((progress / numFilesToGet) * 10000) / 100).toFixed(2)}% (${progress}/${numFilesToGet}) ${packageDetails.uasset.filename}\n`,
-        );
       }
     }
 

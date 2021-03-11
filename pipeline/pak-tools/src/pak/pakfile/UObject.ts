@@ -7,6 +7,8 @@ import {Reader} from "../../readers/Reader";
 import {UExports} from "./UExports";
 import {v4 as uuidv4} from "uuid";
 import {PakVersion} from "../PakFile";
+import {UTexture2D} from "./uexports/UTexture2D";
+import {ChildReader} from "../../readers/ChildReader";
 
 export class UObject {
   constructor(private pakVersion: PakVersion, public uasset: UAsset, private uexpReader: Reader, private ubulkReader?: Reader) {}
@@ -15,23 +17,30 @@ export class UObject {
 
   public uexports: UExports[] = [];
 
+  public specialTypes = new Map<string, any[]>();
+
   async initialize() {
 
     for (const exp of this.uasset.exports) {
       this.uexpReader.seekTo(exp.serialOffset - this.uasset.summary.totalHeaderSize);
 
       const className = this.uasset.getClassNameFromExport(exp);
-      const baseObject = new UExports(this.uexpReader, this.uasset, className, true, this.pakVersion);
-      await baseObject.initialize();
 
-      this.uexports.push(baseObject);
+      if (className === 'Texture2D') {
+        const texture2DFile = new UTexture2D(this.uexpReader, this.uasset, className, true, this.pakVersion, this.ubulkReader);
+        await texture2DFile.initialize();
 
-      // let itemToPush: UObjectBase;
-      // if (className === 'Texture2D') {
-      //   const texture2DFile = new UTexture2D(result.reader, bulkReader as ChildReader, asset);
-      //   await texture2DFile.initialize();
-      //   itemToPush = texture2DFile;
-      //   fileType = 'Texture2D';
+        this.uexports.push(texture2DFile);
+        if (!this.specialTypes.has('Texture2D')) {
+          this.specialTypes.set('Texture2D', []);
+        }
+
+        this.specialTypes.get('Texture2D')!.push(texture2DFile);
+      } else {
+        const baseObject = new UExports(this.uexpReader, this.uasset, className, true, this.pakVersion);
+        await baseObject.initialize();
+        this.uexports.push(baseObject);
+      }
       // } else if (className === 'DataTable') {
       //   //Data Table
       //   const DataTableFile = new UDataTable(result.reader, asset);
