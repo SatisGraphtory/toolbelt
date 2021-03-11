@@ -6,7 +6,7 @@ import {UScriptArray, UScriptArrayMetaData} from "../../pak/structs/UScript/UScr
 import {resolveSlugFromPackageReference} from "../resolvers/resolveSlugs";
 import {PakFile} from "../../pak/PakFile";
 import consoleInspect from "../../util/consoleInspect";
-import * as SatisfactoryEnums from '../../../../../.DataLanding/interfaces/enums';
+import * as SatisfactoryEnums from '../../../../../.DataLanding/interfaces';
 import {type} from "os";
 
 export class Marshaller {
@@ -340,7 +340,8 @@ export class Marshaller {
     const [namespace, enumName] = property!.tag.split('::');
 
     if ((SatisfactoryEnums as any)[namespace] === undefined) {
-      throw new Error(`Could not find enum namespace ${namespace} (maybe you need to update?)`);
+      console.error(`Could not find enum namespace ${namespace} (maybe you need to update?)`);
+      return 0;
     }
 
     if ((SatisfactoryEnums as any)[namespace][enumName] === undefined) {

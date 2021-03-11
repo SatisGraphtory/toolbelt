@@ -2,7 +2,7 @@
 import {paths} from '@local/paths';
 import fs from "fs";
 import * as path from 'path';
-import * as SatisfactoryEnums from '../../../../../../.DataLanding/interfaces/enums';
+import * as SatisfactoryEnums from '../../../../../../.DataLanding/interfaces';
 import {findJsonObject, getJsonForObject} from "../../loader/jsonLoader";
 import {PakFile} from "../../../pak/PakFile";
 import {Marshaller} from "../../marshaller/marshaller";
@@ -41,7 +41,7 @@ for (const [enumName, enumValues] of Object.entries(SatisfactoryEnums)) {
     // if (enumMap.has(enm)) {
     //   throw new Error("Already has enum " + enm);
     // }
-    enumMap.set(enm as any, enumValues[enm as any] as unknown as number);
+    enumMap.set(enm as any, (enumValues as any)[enm as any] as unknown as number);
   }
 }
 

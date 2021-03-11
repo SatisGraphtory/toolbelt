@@ -101,7 +101,7 @@ async function main() {
   // const fileNameList = ['FactoryGame/Content/FactoryGame/Schematics/Tutorial/Schematic_Tutorial5.uexp']
   const fileNameList =  Array.from(pakFile.entries.keys());
 
-  // // This is the section handling schematics
+  // This is the section handling schematics
   const schematicFiles = await getAllSchematicFilenames(fileNameList);
 
   const {objectMap: schematicMap, dependencies: schematicDependencies } = await marshallGeneric<UFGSchematic>(pakFile,
@@ -123,6 +123,8 @@ async function main() {
 
   const globalClassMap = {} as Record<string, string[]>;
 
+  const verifiedBuildableFiles = [] as string[];
+
   for (const unrealName of classes) {
     console.log("Processing buildable", unrealName);
     const docName = unrealName.replace(/^A/, '');
@@ -131,6 +133,7 @@ async function main() {
     const buildableClassKeys =  [...buildableMap.keys()];
     if (buildableClassKeys.length) {
       globalClassMap[unrealName] = buildableClassKeys;
+      verifiedBuildableFiles.push(...buildableClassKeys);
     }
   }
 
@@ -138,8 +141,9 @@ async function main() {
 
   fs.writeFileSync(classMapPath, JSON.stringify(globalClassMap, replacer, 2))
 
-
-
+  const {objectMap: pipeMap, dependencies: pipeDependencies } = await marshallGeneric<any>(pakFile,
+    new Set(verifiedBuildableFiles),
+    docObjects, "FGPipeConnectionComponent", "UFGPipeConnectionComponent", true)
 
 
 

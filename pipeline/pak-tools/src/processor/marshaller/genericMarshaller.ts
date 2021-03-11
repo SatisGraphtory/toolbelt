@@ -12,49 +12,52 @@ const loadedNonMainClasses = new Map<string, boolean>();
 async function marshallObject<T>(pakFile: PakFile, uObject: UObject,
                               docEntry: Record<string, Record<string, any>>,
                               uObjectMarshaller: Marshaller,
-                              baseClass: string, loadNonMainClasses: boolean) {
-  if (objectCache.get(uObject.uasset.filename)) {
-    if (loadNonMainClasses && loadedNonMainClasses.get(uObject.uasset.filename)) {
-      return objectCache.get(uObject.uasset.filename)
-    } else if (!loadNonMainClasses) {
-      return objectCache.get(uObject.uasset.filename)
-    }
-  }
+                              baseClass: string, loadNonMainClasses: boolean,
+                                 mainClassToFind: string ) {
+  // if (objectCache.get(uObject.uasset.filename)) {
+  //   if (loadNonMainClasses && loadedNonMainClasses.get(uObject.uasset.filename)) {
+  //     return objectCache.get(uObject.uasset.filename)
+  //   } else if (!loadNonMainClasses) {
+  //     return objectCache.get(uObject.uasset.filename)
+  //   }
+  // }
 
   const resolvedExports = await resolveExports(pakFile, uObject);
 
   const mainClass = await findMainClass(resolvedExports);
 
-  const additionalObjects = [] as any[];
+  const returnedObjects = [] as any[];
 
-  if (loadNonMainClasses) {
-    loadedNonMainClasses.set(uObject.uasset.filename, true);
-    const additionalClasses = await findAdditionalClasses(resolvedExports);
-
-    if (additionalClasses) {
-      for (const claz of additionalClasses) {
-        additionalObjects.push(await uObjectMarshaller.marshalFromPropertyList<T>(
-          claz.propertyList, baseClass, docEntry, true))
-      }
-    }
-  }
-
-  if (mainClass) {
+  if (mainClass?.exportTypes === mainClassToFind) {
     const toReturn =  {
       type: mainClass.exportTypes,
       name: uObject.uasset.filename,
       slug: await resolveSlugFromPath(uObject.uasset.filename, pakFile),
       object: await uObjectMarshaller.marshalFromPropertyList<T>(
-        mainClass.propertyList, baseClass, docEntry, true),
-      additionalObjects
+        mainClass.propertyList, baseClass, docEntry, true)
     };
-
-    objectCache.set(uObject.uasset.filename, toReturn);
-
-    return toReturn;
-  } else {
-    throw new Error("Could not find main class for object file " + uObject.uasset.filename)
+    returnedObjects.push(toReturn);
   }
+
+  if (loadNonMainClasses) {
+    const additionalClasses = await findAdditionalClasses(resolvedExports);
+    for (const claz of additionalClasses || []) {
+      if (claz.exportTypes === mainClassToFind) {
+        const subClassInfo = await uObjectMarshaller.marshalFromPropertyList<T>(
+          claz.propertyList, baseClass, docEntry, true);
+
+        const additionalClassInfo = {
+          type: claz.exportTypes,
+          name: uObject.uasset.filename,
+          slug: await resolveSlugFromPath(uObject.uasset.filename, pakFile),
+          object: subClassInfo
+        };
+        returnedObjects.push(additionalClassInfo);
+      }
+    }
+  }
+
+  return returnedObjects;
 }
 
 function findActualObjectName(docObject: any, keyToSearch: string) {
@@ -71,7 +74,7 @@ function findActualObjectName(docObject: any, keyToSearch: string) {
 
 export async function marshallGeneric<T>(pakFile: PakFile, pakFiles: Set<string>,
                                       docObject: Record<string, Record<string, Record<string, any>>>,
-                                         docObjectClass: string | null, unrealClassName: string,
+                                         docObjectClass: string, unrealClassName: string,
                                          searchNonMainClasses = false,
                                          limitToProvidedDocs = false) {
 
@@ -82,12 +85,10 @@ export async function marshallGeneric<T>(pakFile: PakFile, pakFiles: Set<string>
 
   const providedObjects = docObjectClass ? docObject[docObjectClass] : {};
 
-  const objectList = [] as T[];
-
   const objectMap = new Map<string, T[]>();
   const slugMap = new Map<string, string>();
 
-  const requiredAttributes = new Set(getJsonForObject(unrealClassName).required);
+  const objectList = [] as T[];
 
   for (const objectEntry of uObjectEntries) {
     const name = objectEntry.uasset.filename.match(/^.*\/([A-Za-z_0-9\-]+)\.uasset/)![1];
@@ -97,76 +98,22 @@ export async function marshallGeneric<T>(pakFile: PakFile, pakFiles: Set<string>
       continue;
     }
 
-    const marshalledObject = await marshallObject<T>(
+    const marshalledObjects = await marshallObject<T>(
       pakFile, objectEntry,
       correspondingDocsEntry,
-      genericMarshaller, unrealClassName, searchNonMainClasses);
+      genericMarshaller, unrealClassName, searchNonMainClasses, docObjectClass);
 
-    // const marshalledAttributeSet = Object.keys(marshalledObject.object).filter(item => item.startsWith('m'));
-
-    if (marshalledObject.type === docObjectClass) {
-      if (!objectMap.get(marshalledObject.name)) {
-        objectMap.set(marshalledObject.name, []);
-        slugMap.set(marshalledObject.name, marshalledObject.slug)
+    for (const obj of marshalledObjects) {
+      if (!objectMap.get(obj.name)) {
+        objectMap.set(obj.name, []);
+        slugMap.set(obj.name, obj.slug)
       }
-      objectMap.get(marshalledObject.name)!.push(marshalledObject.object);
-
-      objectList.push(marshalledObject.object);
-    } else if (searchNonMainClasses) {
-      for (const additionalExport of marshalledObject.additionalObjects) {
-        if (additionalExport.type === docObjectClass) {
-          if (!objectMap.get(marshalledObject.name)) {
-            objectMap.set(marshalledObject.name, []);
-            slugMap.set(marshalledObject.name, marshalledObject.slug)
-          }
-          objectMap.get(marshalledObject.name)!.push(additionalExport);
-
-          objectList.push(additionalExport);
-        }
-      }
+      objectMap.get(obj.name)!.push(obj.object);
+      objectList.push(obj.object);
     }
-
-
-    // for (const entry of Object.keys(correspondingDocsEntry)) {
-    //   requiredAttributes.add(entry);
-    // }
-    //
-    // // for (const attr of marshalledAttributeSet) {
-    // //   if (!requiredAttributes.has(attr)) {
-    // //     console.log("Missing", attr)
-    // //     consoleInspect(marshalledObject)
-    // //   }
-    // // }
-    // if (marshalledAttributeSet.every((item: string) => requiredAttributes.has(item))) {
-    //
-    //   if (!objectMap.get(marshalledObject.name)) {
-    //     objectMap.set(marshalledObject.name, []);
-    //     slugMap.set(marshalledObject.name, marshalledObject.slug)
-    //   }
-    //   objectMap.get(marshalledObject.name)!.push(marshalledObject.object);
-    //
-    //   objectList.push(marshalledObject.object);
-    // } else {
-    //   if (searchNonMainClasses) {
-    //     for (const additionalExport of marshalledObject.additionalObjects) {
-    //       const marshalledSubAttributeSet = Object.keys(additionalExport).filter(item => item.startsWith('m'));
-    //       if (marshalledSubAttributeSet.every((item: string) => requiredAttributes.has(item))) {
-    //         if (!objectMap.get(marshalledObject.name)) {
-    //           objectMap.set(marshalledObject.name, []);
-    //           slugMap.set(marshalledObject.name, marshalledObject.slug)
-    //         }
-    //         objectMap.get(marshalledObject.name)!.push(additionalExport);
-    //
-    //         objectList.push(additionalExport);
-    //       }
-    //     }
-    //   }
-    // }
-    //
-
   }
 
-  genericMarshaller.determineAndAddMissingDependencies<T>(objectList);
+  genericMarshaller.determineAndAddMissingDependencies(objectList)
 
   return {
     objectMap,
