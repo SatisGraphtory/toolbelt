@@ -102,60 +102,41 @@ async function main() {
   const fileNameList =  Array.from(pakFile.entries.keys());
 
   // // This is the section handling schematics
-  // const schematicFiles = await getAllSchematicFilenames(fileNameList);
-  //
-  // const {objectMap: schematicMap, dependencies: schematicDependencies } = await marshallGeneric<UFGSchematic>(pakFile,
-  //   schematicFiles, docObjects, "FGSchematic", "UFGSchematic")
-  //
-  // const recipeFiles = await getAllRecipeFilenames([...fileNameList, ...schematicDependencies]);
-  //
-  // const {objectMap: recipeMap, dependencies: recipeDependencies } = await marshallGeneric<UFGRecipe>(pakFile,
-  //   recipeFiles, docObjects, "FGRecipe", "UFGRecipe")
-  //
-  // const itemFiles = await getAllItemFilenames([...fileNameList]);
-  //
-  //
-  //
+  const schematicFiles = await getAllSchematicFilenames(fileNameList);
 
+  const {objectMap: schematicMap, dependencies: schematicDependencies } = await marshallGeneric<UFGSchematic>(pakFile,
+    schematicFiles, docObjects, "FGSchematic", "UFGSchematic")
 
+  const recipeFiles = await getAllRecipeFilenames([...fileNameList, ...schematicDependencies]);
 
+  const {objectMap: recipeMap, dependencies: recipeDependencies } = await marshallGeneric<UFGRecipe>(pakFile,
+    recipeFiles, docObjects, "FGRecipe", "UFGRecipe")
+
+  const itemFiles = await getAllItemFilenames([...fileNameList]);
 
   const {objectMap: itemMap, dependencies: itemDependencies } = await marshallGeneric<UFGItemDescriptor>(pakFile,
-    new Set(['FactoryGame/Content/FactoryGame/Interface/UI/InGame/Widget_UseableBase.uasset']), docObjects, "FGItemDescriptor", "UFGItemDescriptor")
+    itemFiles, docObjects, "FGItemDescriptor", "UFGItemDescriptor")
 
+  const buildableFiles = await getAllBuildableFilenames([...fileNameList]);
 
+  const classes = new Set(guessSubclassesFromJsonClassName("AFGBuildable"));
 
+  const globalClassMap = {} as Record<string, string[]>;
 
+  for (const unrealName of classes) {
+    console.log("Processing buildable", unrealName);
+    const docName = unrealName.replace(/^A/, '');
+    const {objectMap: buildableMap, dependencies: buildableDependencies } = await marshallGeneric<any>(pakFile,
+      buildableFiles, docObjects, docName, unrealName)
+    const buildableClassKeys =  [...buildableMap.keys()];
+    if (buildableClassKeys.length) {
+      globalClassMap[unrealName] = buildableClassKeys;
+    }
+  }
 
+  const classMapPath = path.join(paths.dataWarehouse.supplimentary, 'ClassMap.json');
 
-
-
-  //
-  //
-  //
-  // const {objectMap: itemMap, dependencies: itemDependencies } = await marshallGeneric<UFGItemDescriptor>(pakFile,
-  //   itemFiles, docObjects, "FGItemDescriptor", "UFGItemDescriptor")
-  //
-  // const buildableFiles = await getAllBuildableFilenames([...fileNameList]);
-  //
-  // const classes = new Set(guessSubclassesFromJsonClassName("AFGBuildable"));
-  //
-  // const globalClassMap = {} as Record<string, string[]>;
-  //
-  // for (const unrealName of classes) {
-  //   console.log("Processing buildable", unrealName);
-  //   const docName = unrealName.replace(/^A/, '');
-  //   const {objectMap: buildableMap, dependencies: buildableDependencies } = await marshallGeneric<any>(pakFile,
-  //     buildableFiles, docObjects, docName, unrealName)
-  //   const buildableClassKeys =  [...buildableMap.keys()];
-  //   if (buildableClassKeys.length) {
-  //     globalClassMap[unrealName] = buildableClassKeys;
-  //   }
-  // }
-  //
-  // const classMapPath = path.join(paths.dataWarehouse.supplimentary, 'ClassMap.json');
-  //
-  // fs.writeFileSync(classMapPath, JSON.stringify(globalClassMap, replacer, 2))
+  fs.writeFileSync(classMapPath, JSON.stringify(globalClassMap, replacer, 2))
 
 
 

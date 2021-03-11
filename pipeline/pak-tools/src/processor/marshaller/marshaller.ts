@@ -219,12 +219,15 @@ export class Marshaller {
 
             // We need to handle structs a little bit differently
             if (subProperty.propertyType === 'StructProperty') {
-              for(let [retrievedKey, retrievedValue] of Object.entries(await this.marshalStructProperty(subProperty, docObject))) {
-                if (propertyMap[retrievedKey] !== undefined) {
-                  throw new Error("This property map already has the key " + retrievedKey);
-                }
-                propertyMap[retrievedKey] =  retrievedValue;
-              }
+              propertyMap[subProperty!.name] = await this.marshalStructProperty(subProperty, docObject)
+              //
+              // for(let [retrievedKey, retrievedValue] of ) {
+              //   if (propertyMap[retrievedKey] !== undefined) {
+              //     consoleInspect(property);
+              //     throw new Error("This property map already has the key " + retrievedKey);
+              //   }
+              //   propertyMap[retrievedKey] =  retrievedValue;
+              // }
             } else {
               propertyMap[subProperty!.name] = await this.marshalPropertyByPakType(subProperty, docObject);
             }
@@ -448,6 +451,7 @@ export class Marshaller {
     }
 
     let nameWithoutClassSuffix = usedClassName.replace(/_C$/, '')
+      .replace(/^\/Engine\//, 'Engine/Content/')
       .replace(/^\/Game\//, 'FactoryGame/Content/')
       .replace(/^Default__/, '');
 
@@ -467,6 +471,7 @@ export class Marshaller {
       separatedName.pop()
       separatedName.push(previousTraversalNode.objectName);
       separatedName = separatedName.join('/').replace(/_C$/, '')
+        .replace(/^\/Engine\//, 'Engine/Content/')
         .replace(/^\/Game\//, 'FactoryGame/Content/')
         .replace(/^Default__/, '');
 

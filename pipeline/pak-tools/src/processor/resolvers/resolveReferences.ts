@@ -4,6 +4,7 @@ import {FPropertyTag} from "../../pak/structs/UScript/FPropertyTag";
 import {UObject} from "../../pak/pakfile/UObject";
 import {PakFile} from "../../pak/PakFile";
 import util from 'util';
+import consoleInspect from "../../util/consoleInspect";
 
 export function resolveReferenceName(baseObject: UObject, blueprintName: string, pakFile: PakFile) {
   const imports = baseObject.uasset.imports.filter(imp => imp.objectName === blueprintName || imp.className === blueprintName);

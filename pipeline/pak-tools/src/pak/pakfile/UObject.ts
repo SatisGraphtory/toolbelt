@@ -24,7 +24,7 @@ export class UObject {
     for (const exp of this.uasset.exports) {
       this.uexpReader.seekTo(exp.serialOffset - this.uasset.summary.totalHeaderSize);
 
-      const className = this.uasset.getClassNameFromExport(exp);
+      const className = await this.uasset.getClassNameFromExport(exp);
 
       if (className === 'Texture2D') {
         const texture2DFile = new UTexture2D(this.uexpReader, this.uasset, className, true, this.pakVersion, this.ubulkReader);

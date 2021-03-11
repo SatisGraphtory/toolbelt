@@ -1,5 +1,6 @@
 import {Shape} from "../../util/parsers";
 import {FPropertyTag} from "../../pak/structs/UScript/FPropertyTag";
+import consoleInspect from "../../util/consoleInspect";
 
 function getPropertyNames(properties: Shape<typeof FPropertyTag>[]): string[] {
   return properties.map(item => item?.name).filter(item => item) as string[];
@@ -31,6 +32,17 @@ function getPropertyWithName(properties: Shape<typeof FPropertyTag>[], searchNam
   }
 
   return foundProperties[0];
+}
+
+function getPropertiesWithName(properties: Shape<typeof FPropertyTag>[], searchName: string): Shape<typeof FPropertyTag>[] {
+  return properties.filter(item => {
+    const name = item?.name;
+    if (name) {
+      return searchName === name
+    }
+
+    throw new Error("Found property with no name")
+  });
 }
 
 function findGuidProperties(propertyNames: Set<string>) {
@@ -71,10 +83,9 @@ export async function resolvePropertyListMerges(basePropertyList: Shape<typeof F
   // TODO: Remove this debug
   const DebugCopyOfProperties = new Set([...overlappingPropertyNames]);
 
-
   for (const overlappingPropertyName of overlappingPropertyNames) {
     const basePropertyNameCount = countPropertyInstances(overlappingPropertyName, basePropertyNames)
-    const overridePropertyNameCount = countPropertyInstances(overlappingPropertyName, basePropertyNames)
+    const overridePropertyNameCount = countPropertyInstances(overlappingPropertyName, overridePropertyNames)
 
     if (basePropertyNameCount === 1 && overridePropertyNameCount === 1) {
       // Scott free!
@@ -89,11 +100,34 @@ export async function resolvePropertyListMerges(basePropertyList: Shape<typeof F
 
       fullPropertyList.push(foundOverridingProperty);
       DebugCopyOfProperties.delete(overlappingPropertyName);
+    } else if (basePropertyNameCount === overridePropertyNameCount) {
+      const theseProperties = getPropertiesWithName(subclassPropertyList, overlappingPropertyName);
+
+      // TODO: Figure out what to do with overlapping properties
+      // const equalityCheck = theseProperties.map(item => {
+      //   return JSON.stringify(item!.tag!.reference)
+      // })
+      //
+      // if (!equalityCheck.every(item => item === equalityCheck[0])) {
+      //   // TODO: If there are DUPLICATE properties what the hell do we do??
+      //   consoleInspect(theseProperties)
+      //   consoleInspect(getPropertiesWithName(basePropertyList, overlappingPropertyName))
+      //   console.log(equalityCheck);
+      //   process.exit(1)
+      // }
+
+      fullPropertyList.push(theseProperties[0]);
+      // for (const property of getPropertiesWithName(subclassPropertyList, overlappingPropertyName)) {
+      //   fullPropertyList.push(property);
+      // }
+
+      DebugCopyOfProperties.delete(overlappingPropertyName);
     } else {
       console.log("==============")
       console.log(basePropertyList)
       console.log("~~~~~~~~~~~~~~~")
       console.log(subclassPropertyList)
+      console.log(overlappingPropertyName)
       throw new Error("Multiples detected")
     }
   }

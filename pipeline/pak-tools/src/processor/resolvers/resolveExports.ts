@@ -150,12 +150,20 @@ export async function resolveExports(pakFile: PakFile, baseObject: UObject, dept
 
           const referencedPakFile = resolveReferenceName(baseObject, exportType, pakFile);
 
-          const referencedFileList = await pakFile.getFiles([...sanitizeDependencies(pakFile, new Set([referencedPakFile]))])
+          const referencedFilteredFiles = [] as string[];
+
+          if (referencedPakFile) {
+            referencedFilteredFiles.push(referencedPakFile);
+          }
+
+          const referencedFileList = await pakFile.getFiles([...sanitizeDependencies(pakFile, new Set(referencedFilteredFiles))])
 
           if (!referencedFileList.length) {
-            if (!referencedPakFile.startsWith('/Script/')) {
-              console.warn("No file found for", referencedPakFile, " and export set to", originalExport.exportTypes);
-            }
+
+            // TODO: This should be impossible now? since we removed it as part of resolveReferenceName
+            // if (!referencedPakFile?.startsWith('/Script/')) {
+            //   console.warn("No file found for", referencedPakFile, " and export set to", originalExport.exportTypes);
+            // }
 
             if (resolvedExportType !== null && typeWasFound) {
               originalExport.exportTypes = resolvedExportType as string;
@@ -181,7 +189,16 @@ export async function resolveExports(pakFile: PakFile, baseObject: UObject, dept
             // We don't want to filter
             const innerExportTypes = innerExports.map((item: any) => item.exportTypes);
             // The actual instances comes after the BlueprintGeneratedClass.
-            const instanceIndex = innerExportTypes.indexOf('BlueprintGeneratedClass');
+            let instanceIndex = innerExportTypes.indexOf('BlueprintGeneratedClass');
+
+            if (instanceIndex === -1) {
+              for (let i = 0; i < innerExportTypes.length; i++) {
+                if (innerExportTypes[i].indexOf('BlueprintGeneratedClass') !== -1) {
+                  instanceIndex = i;
+                  break;
+                }
+              }
+            }
 
             if (instanceIndex === -1) {
               console.log(exportType, innerExportTypes)

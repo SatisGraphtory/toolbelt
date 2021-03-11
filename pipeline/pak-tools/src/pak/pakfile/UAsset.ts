@@ -177,8 +177,21 @@ export class UAsset {
     }
   }
 
-  getClassNameFromExport(exp: Shape<typeof FObjectExport>) {
-    console.log(this.packageIndexLookupTable.get(exp.classIndex))
+  async getClassNameFromExport(exp: Shape<typeof FObjectExport>) {
+    const asImport = (-exp.classIndex - 1);
+    const asExport = (exp.classIndex - 1)
+
+    if (exp.classIndex === 0) {
+      const className = await this.reader.read(FName(this.names));
+      console.log("Unsure if we actually found the className:", className);
+      process.exit(3);
+      return className;
+    } else if (exp.classIndex < 0) {
+      return this.imports[asImport].objectName
+    } else if (exp.classIndex > 0) {
+      return (this.packageIndexLookupTable.get(this.exports[asExport].superIndex) as any).reference.objectName;
+    }
+
     const classObject = this.packageIndexLookupTable.get(exp.templateIndex)?.reference as Shape<
       typeof FObjectImport
       >;

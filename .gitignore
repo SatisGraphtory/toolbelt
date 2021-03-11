@@ -1,7 +1,9 @@
 /**/node_modules/
 /**/dist/
-pak-dump
+pak-dump*
 /.SourceData/
 /.DataLanding/
+/.DataWarehouse/
 /pipeline/pak-tools/.env
 .env
+
