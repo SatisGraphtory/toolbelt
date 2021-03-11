@@ -47,7 +47,7 @@ function parseAll(sourceDir = paths.sourceData.headers, destDir = paths.dataLand
     }
   }
   indexLines.push(`export * from './native';`);
-  indexLines.push('');
+  indexLines.push('', '');
 
   indexLines.push(pretty(`export const inheritanceMap = ${JSON.stringify(inheritanceMap)}`));
 
