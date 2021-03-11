@@ -1,6 +1,11 @@
 name: 'SourceData ⇨ DataLanding'
 
-on: [push, repository_dispatch]
+on:
+  push:
+    branches:
+      - master
+      - experimental
+  repository_dispatch:
 
 jobs:
   setup:
