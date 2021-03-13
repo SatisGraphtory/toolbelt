@@ -12,6 +12,8 @@ import {UAsset} from "./pakfile/UAsset";
 import {UObject} from "./pakfile/UObject";
 import {asyncArrayForEach, asyncSetForEach} from "../util/asyncEnumerators";
 import {FObjectExport} from "./structs/file/FObjectExport";
+import {ULocalizationResource} from "./pakfile/ULocalizationResource";
+import UBase from "./pakfile/UBase";
 
 export enum PakVersion {
   Initial = 1,
@@ -185,6 +187,14 @@ export class PakFile {
     if (!packageFile) return null;
 
     return packageFile;
+  }
+
+  public async getLocalizationFile(path:string) {
+    const localizationResource = await this.getPackageFile(path);
+    if (!localizationResource) throw new Error("Could not find localization resource " + path)
+    const uObjectFile = new ULocalizationResource(this.info.version, localizationResource.reader, localizationResource.entry, path);
+    await uObjectFile.initialize();
+    return uObjectFile.getDictionary();
   }
 
   private async getPackage(path: string) {

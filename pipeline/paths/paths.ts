@@ -23,4 +23,5 @@ export namespace toolBelt {
 export namespace dataWarehouse {
   export const root = path.join(engineeringRoot, '.DataWarehouse');
   export const supplimentary = path.join(root, 'supplimentary');
+  export const main = path.join(root, 'main');
 }

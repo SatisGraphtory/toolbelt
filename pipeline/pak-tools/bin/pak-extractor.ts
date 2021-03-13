@@ -22,7 +22,7 @@ import {EmitContext} from "../../headers-to-interfaces/emit";
 import {pretty} from "../src/util/pretty";
 
 // import RecipeJson from "../../../.DataLanding/objects/recipes";
-import { UFGRecipe, UFGSchematic, UFGItemDescriptor, UFGPipeConnectionComponent } from '../../../.DataLanding/interfaces';
+import { UFGRecipe, UFGSchematic, UFGItemDescriptor, UFGPipeConnectionComponent, EResourceForm, EFactoryConnectionDirection, EPipeConnectionType } from '../../../.DataLanding/interfaces';
 
 import * as SatisFactoryClassInterfaces from '../../../.DataLanding/interfaces';
 
@@ -30,6 +30,8 @@ import {marshallGeneric} from "../src/processor/marshaller/genericMarshaller";
 import getAllItemFilenames from "../src/processor/steps/items/getAllItemFilenames";
 import {guessSubclassesFromJsonClassName} from "../src/processor/steps/json/guessSubclassesFromJsonClassName";
 import getAllBuildableFilenames from "../src/processor/steps/buildables/getAllBuildableFilenames";
+import ConnectionMapper from "../src/processor/steps/ConnectionMapper";
+import getAllLocalizationFilenames from "../src/processor/steps/localize/getAllLocalizationFilenames";
 
 const DEFAULT_INSTALL_DIR = '/mnt/a/Games/Epic/SatisfactoryExperimental';
 
@@ -84,9 +86,22 @@ async function main() {
 
   fs.mkdirSync(paths.dataWarehouse.supplimentary, { recursive: true });
 
+  // const fileNameList = ['FactoryGame/Content/FactoryGame/Schematics/Tutorial/Schematic_Tutorial5.uexp']
+  const fileNameList =  Array.from(pakFile.entries.keys());
+
+  // const localizationFiles = await getAllLocalizationFilenames(fileNameList)
+  //
+  // for (const localizationFile of localizationFiles) {
+  //   if (localizationFile.indexOf('/en-US-POSIX') !== -1) {
+  //     console.log(localizationFile, await pakFile.getLocalizationFile(localizationFile));
+  //   }
+  // }
+
   function replacer(key: string, value: any) {
     if(value instanceof Map) {
         return Object.fromEntries(value)
+    } else if ( typeof value === 'bigint') {
+      return Number(value)
     } else {
       return value;
     }
@@ -98,24 +113,23 @@ async function main() {
 
   fs.writeFileSync(pakManifestPath, JSON.stringify([...pakFile.entries.keys()], replacer, 2))
 
-  // const fileNameList = ['FactoryGame/Content/FactoryGame/Schematics/Tutorial/Schematic_Tutorial5.uexp']
-  const fileNameList =  Array.from(pakFile.entries.keys());
+  if (false) {
+    // This is the section handling schematics
+    const schematicFiles = await getAllSchematicFilenames(fileNameList);
 
-  // This is the section handling schematics
-  const schematicFiles = await getAllSchematicFilenames(fileNameList);
+    const {objectMap: schematicMap, dependencies: schematicDependencies } = await marshallGeneric<UFGSchematic>(pakFile,
+      schematicFiles, docObjects, "FGSchematic", "UFGSchematic")
 
-  const {objectMap: schematicMap, dependencies: schematicDependencies } = await marshallGeneric<UFGSchematic>(pakFile,
-    schematicFiles, docObjects, "FGSchematic", "UFGSchematic")
+    const recipeFiles = await getAllRecipeFilenames([...fileNameList, ...schematicDependencies]);
 
-  const recipeFiles = await getAllRecipeFilenames([...fileNameList, ...schematicDependencies]);
+    const {objectMap: recipeMap, dependencies: recipeDependencies } = await marshallGeneric<UFGRecipe>(pakFile,
+      recipeFiles, docObjects, "FGRecipe", "UFGRecipe")
 
-  const {objectMap: recipeMap, dependencies: recipeDependencies } = await marshallGeneric<UFGRecipe>(pakFile,
-    recipeFiles, docObjects, "FGRecipe", "UFGRecipe")
+    const itemFiles = await getAllItemFilenames([...fileNameList]);
 
-  const itemFiles = await getAllItemFilenames([...fileNameList]);
-
-  const {objectMap: itemMap, dependencies: itemDependencies } = await marshallGeneric<UFGItemDescriptor>(pakFile,
-    itemFiles, docObjects, "FGItemDescriptor", "UFGItemDescriptor")
+    const {objectMap: itemMap, dependencies: itemDependencies } = await marshallGeneric<UFGItemDescriptor>(pakFile,
+      itemFiles, docObjects, "FGItemDescriptor", "UFGItemDescriptor")
+  }
 
   const buildableFiles = await getAllBuildableFilenames([...fileNameList]);
 
@@ -125,15 +139,25 @@ async function main() {
 
   const verifiedBuildableFiles = [] as string[];
 
+  const allBuildingsMap = new Map<string, any>();
+
   for (const unrealName of classes) {
     console.log("Processing buildable", unrealName);
     const docName = unrealName.replace(/^A/, '');
-    const {objectMap: buildableMap, dependencies: buildableDependencies } = await marshallGeneric<any>(pakFile,
+    const { objectMap: buildableMap, dependencies: buildableDependencies, slugMap } = await marshallGeneric<any>(pakFile,
       buildableFiles, docObjects, docName, unrealName)
     const buildableClassKeys =  [...buildableMap.keys()];
     if (buildableClassKeys.length) {
       globalClassMap[unrealName] = buildableClassKeys;
       verifiedBuildableFiles.push(...buildableClassKeys);
+      for (const key of buildableClassKeys) {
+        const slug = slugMap.get(key)!;
+        if (buildableMap.get(key)?.length !== 1) {
+          throw new Error("Too many entries for " + key)
+        }
+
+        allBuildingsMap.set(slug, buildableMap.get(key)![0])
+      }
     }
   }
 
@@ -141,35 +165,50 @@ async function main() {
 
   fs.writeFileSync(classMapPath, JSON.stringify(globalClassMap, replacer, 2))
 
-  const {objectMap: pipeMap, dependencies: pipeDependencies } = await marshallGeneric<any>(pakFile,
+  const {objectMap: pipeMap, classToFilenameMap: pipeFilenameMap,
+    dependencies: pipeDependencies, slugMap: pipeSlugMap } = await marshallGeneric<any>(pakFile,
     new Set(verifiedBuildableFiles),
-    docObjects, "FGPipeConnectionComponent", "UFGPipeConnectionComponent", true)
+    docObjects, "FGPipeConnectionComponent",
+    "UFGPipeConnectionComponent", true)
+
+  const {objectMap: beltMap, classToFilenameMap: beltFilenameMap,
+    dependencies: beltDependencies, slugMap: beltSlugMap } = await marshallGeneric<any>(pakFile,
+    new Set(verifiedBuildableFiles),
+    docObjects, "FGFactoryConnectionComponent",
+    "UFGFactoryConnectionComponent", true)
+
+  const connectionMapper = new ConnectionMapper();
+
+  // We need to add a custom handler to conveyer belts because they both report as 'input'
+  connectionMapper.addCustomClassHandler('FGBuildableConveyorBelt', () => {
+    return [
+      {
+        mDirection: EFactoryConnectionDirection.FCD_INPUT
+      },
+      {
+        mDirection: EFactoryConnectionDirection.FCD_OUTPUT
+      }
+    ]
+  })
+
+  // We'll need to add gas and heat too
+  connectionMapper.addConnectionMap(beltSlugMap, beltFilenameMap, beltMap, "mDirection",
+    EResourceForm.RF_SOLID, EResourceForm, EFactoryConnectionDirection);
+  connectionMapper.addConnectionMap(pipeSlugMap, pipeFilenameMap, pipeMap, "mPipeConnectionType",
+    EResourceForm.RF_LIQUID, EResourceForm, EPipeConnectionType);
 
 
+  /** Write out connections.json  **/
+  const connectionMapPath = path.join(paths.dataWarehouse.main, 'Connections.json');
 
+  fs.mkdirSync(paths.dataWarehouse.main, { recursive: true });
 
+  fs.writeFileSync(connectionMapPath, connectionMapper.getFinalResourceMapString())
 
+  /** Write out buildings.json  **/
+  const buildingMapPath = path.join(paths.dataWarehouse.main, 'Buildings.json');
 
-
-
-
-
-
-
-
-
-  // const {objectMap: buildableMap, dependencies: buildableDependencies } = await marshallGeneric<any>(pakFile,
-  //   buildableFiles, docObjects, "All", "AFGBuildable", true)
-  //
-  // const {objectMap: pipeMap, dependencies: pipeDependencies } = await marshallGeneric<any>(pakFile,
-  //   buildableFiles, docObjects, null, "UFGPipeConnectionComponent", true)
-
-  // consoleInspect(pipeMap);
-
-
-
-  // console.log(classes);
-  // process.exit();
+  fs.writeFileSync(buildingMapPath, JSON.stringify(allBuildingsMap, replacer, 2))
 }
 
 

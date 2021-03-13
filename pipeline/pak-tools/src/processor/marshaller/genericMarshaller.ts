@@ -57,7 +57,10 @@ async function marshallObject<T>(pakFile: PakFile, uObject: UObject,
     }
   }
 
-  return returnedObjects;
+  return {
+    mainClassType: mainClass?.exportTypes,
+    objects: returnedObjects
+  };
 }
 
 function findActualObjectName(docObject: any, keyToSearch: string) {
@@ -81,7 +84,7 @@ export async function marshallGeneric<T>(pakFile: PakFile, pakFiles: Set<string>
   const genericMarshaller = new Marshaller(pakFile);
 
   // Only use UObjects that aren't UTexture2D.
-  const uObjectEntries = await pakFile.getFiles([...pakFiles]);
+  const uObjectEntries = await pakFile.getFiles([...pakFiles])
 
   const providedObjects = docObjectClass ? docObject[docObjectClass] : {};
 
@@ -89,6 +92,8 @@ export async function marshallGeneric<T>(pakFile: PakFile, pakFiles: Set<string>
   const slugMap = new Map<string, string>();
 
   const objectList = [] as T[];
+
+  const classMap = new Map<string, Set<string>>();
 
   for (const objectEntry of uObjectEntries) {
     const name = objectEntry.uasset.filename.match(/^.*\/([A-Za-z_0-9\-]+)\.uasset/)![1];
@@ -103,13 +108,21 @@ export async function marshallGeneric<T>(pakFile: PakFile, pakFiles: Set<string>
       correspondingDocsEntry,
       genericMarshaller, unrealClassName, searchNonMainClasses, docObjectClass);
 
-    for (const obj of marshalledObjects) {
+    for (const obj of marshalledObjects.objects) {
+
       if (!objectMap.get(obj.name)) {
         objectMap.set(obj.name, []);
         slugMap.set(obj.name, obj.slug)
       }
       objectMap.get(obj.name)!.push(obj.object);
       objectList.push(obj.object);
+
+      if (marshalledObjects.mainClassType) {
+        if (!classMap.get(marshalledObjects.mainClassType)) {
+          classMap.set(marshalledObjects.mainClassType, new Set<string>());
+        }
+        classMap.get(marshalledObjects.mainClassType)!.add(obj.name);
+      }
     }
   }
 
@@ -118,6 +131,7 @@ export async function marshallGeneric<T>(pakFile: PakFile, pakFiles: Set<string>
   return {
     objectMap,
     slugMap,
+    classToFilenameMap: classMap,
     dependencies: genericMarshaller.getDependencies().filter((dep) => {
       return !pakFiles.has(dep);
     })

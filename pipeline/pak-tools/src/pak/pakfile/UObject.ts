@@ -9,6 +9,7 @@ import {v4 as uuidv4} from "uuid";
 import {PakVersion} from "../PakFile";
 import {UTexture2D} from "./uexports/UTexture2D";
 import {ChildReader} from "../../readers/ChildReader";
+import UBase from "./UBase";
 
 export class UObject {
   constructor(private pakVersion: PakVersion, public uasset: UAsset, private uexpReader: Reader, private ubulkReader?: Reader) {}
@@ -20,7 +21,6 @@ export class UObject {
   public specialTypes = new Map<string, any[]>();
 
   async initialize() {
-
     for (const exp of this.uasset.exports) {
       this.uexpReader.seekTo(exp.serialOffset - this.uasset.summary.totalHeaderSize);
 
@@ -34,7 +34,6 @@ export class UObject {
         if (!this.specialTypes.has('Texture2D')) {
           this.specialTypes.set('Texture2D', []);
         }
-
         this.specialTypes.get('Texture2D')!.push(texture2DFile);
       } else {
         const baseObject = new UExports(this.uexpReader, this.uasset, className, true, this.pakVersion);

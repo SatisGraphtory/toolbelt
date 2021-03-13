@@ -124,11 +124,11 @@ export async function resolveSlugFromPackageReference(packageReference: packageR
     const namePart = name.replace(/_C$/, '').replace(/_/g, '-');
     const packagePathString = packagePath.replace('FactoryGame/Content/FactoryGame/', '').replace(/[\/_]/g, "-");
     if (packagePathString) {
-      pathParts.push(packagePathString.toLowerCase())
+      pathParts.push(toKebabCase(packagePathString))
     }
-    pathParts.push(namePart.toLowerCase())
+    pathParts.push(toKebabCase(namePart))
 
-    return pathParts.join('-').replace(/--+]/g, '-');
+    return pathParts.join('-').replace(/--+/g, '-');
   }
 
   //TODO: probably fix this somehow

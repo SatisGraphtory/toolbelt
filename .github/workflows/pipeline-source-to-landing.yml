@@ -141,7 +141,7 @@ jobs:
             git commit --allow-empty -m "v${GAME_VERSION} (CL ${GAME_BUILD}) (SatisGraphtory/SourceData@${SOURCE_SHA} via SatisGraphtory/ToolBelt@${ENGINEERING_SHA})"
             git push
             git push origin :refs/tags/v${GAME_VERSION}
-            git tag -fa v${GAME_VERSION} -m "Version v${GAME_VERSION}"
+            git tag -fa v${GAME_VERSION} -m "v${GAME_VERSION} (CL ${GAME_BUILD}) (SatisGraphtory/SourceData@${SOURCE_SHA} via SatisGraphtory/ToolBelt@${ENGINEERING_SHA})"
             git push --tags
           else
             echo No changes to DataLanding. Skipping commit.
