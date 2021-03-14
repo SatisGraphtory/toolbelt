@@ -13,6 +13,7 @@ import {ImageExporter} from "../../exporter/imageExporter/ImageExporter";
 export class UTexture2D extends UExports {
   cooked = 0;
   textures = [] as Shape<typeof FTexturePlatformData>[];
+
   constructor(
     reader: Reader,
     asset: UAsset,

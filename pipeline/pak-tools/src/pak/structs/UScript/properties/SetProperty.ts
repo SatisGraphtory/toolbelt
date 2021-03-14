@@ -4,7 +4,6 @@ import {Shape} from "../../../../util/parsers";
 import {UAsset} from "../../../pakfile/UAsset";
 import {Int32} from "../../../primitive/integers";
 import {StructPropertyTagMetaData, UScriptStruct} from "../UscriptStruct";
-import {MapPropertyTagMetaData} from "./MapProperty";
 
 export function SetPropertyTagMetaData(names: NameMap) {
   return async function SetPropertyParser(reader: Reader) {

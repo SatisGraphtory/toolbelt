@@ -1,4 +1,4 @@
-import { TRangeBound } from './TRangeBound';
+import {TRangeBound} from './TRangeBound';
 import {Reader} from "../../../../readers/Reader";
 
 export function TRange(readSize: number) {

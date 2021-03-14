@@ -33,7 +33,8 @@ export class UAsset {
     private reader: Reader,
     public entry: Shape<typeof FPakEntry>,
     public pak: PakFile,
-  ) {}
+  ) {
+  }
 
   async initialize() {
     // https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/CoreUObject/Private/UObject/LinkerLoad.cpp#L652-L797
@@ -63,7 +64,7 @@ export class UAsset {
 
   // https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/CoreUObject/Private/UObject/LinkerLoad.cpp#L1381-L1440
   async loadNameMap() {
-    const { nameOffset, nameCount } = this.summary;
+    const {nameOffset, nameCount} = this.summary;
     if (!nameOffset || !nameCount) return;
 
     this.reader.seekTo(nameOffset);
@@ -72,7 +73,7 @@ export class UAsset {
 
   // https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/CoreUObject/Private/UObject/LinkerLoad.cpp#L1475-L1498
   async loadImports() {
-    const { importOffset, importCount } = this.summary;
+    const {importOffset, importCount} = this.summary;
     if (!importOffset || !importCount) return;
 
     this.reader.seekTo(importOffset);
@@ -83,7 +84,7 @@ export class UAsset {
   async loadExports() {
 
     // TODO: should we fix this based on https://github.com/gildor2/UEViewer/blob/d8b0d6d7f075e9f00e90290f19e4311f16ea589a/Unreal/UnrealPackage/UnPackage.cpp#L944?
-    const { exportOffset, exportCount } = this.summary;
+    const {exportOffset, exportCount} = this.summary;
     if (!exportOffset || !exportCount) return;
 
     this.reader.seekTo(exportOffset);
@@ -128,7 +129,7 @@ export class UAsset {
 
   // https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/CoreUObject/Private/UObject/LinkerLoad.cpp#L1709-L1752
   async loadDepends() {
-    const { dependsOffset, exportCount } = this.summary;
+    const {dependsOffset, exportCount} = this.summary;
 
     this.reader.seekTo(dependsOffset);
     this.depends = await this.reader.readList(exportCount, TArray(Int32));
@@ -136,7 +137,7 @@ export class UAsset {
 
   // https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/CoreUObject/Private/UObject/LinkerLoad.cpp#L1754-L1800
   async loadPreloadDependencies() {
-    const { preloadDependencyCount, preloadDependencyOffset } = this.summary;
+    const {preloadDependencyCount, preloadDependencyOffset} = this.summary;
     if (!preloadDependencyCount || !preloadDependencyOffset) return;
 
     this.reader.seekTo(preloadDependencyOffset);
@@ -145,14 +146,14 @@ export class UAsset {
 
   // https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/CoreUObject/Private/UObject/LinkerLoad.cpp#L1802-L1905
   async loadThumbnails() {
-    const { thumbnailTableOffset } = this.summary;
+    const {thumbnailTableOffset} = this.summary;
     if (!thumbnailTableOffset) return;
 
     throw new Error(`Please implement ObjectFile#loadThumbnails`);
   }
 
   async loadSoftPackageReferences() {
-    const { softPackageReferencesOffset, softPackageReferencesCount } = this.summary;
+    const {softPackageReferencesOffset, softPackageReferencesCount} = this.summary;
     if (!softPackageReferencesOffset || !softPackageReferencesCount) return;
 
     this.reader.seekTo(softPackageReferencesOffset);
@@ -160,14 +161,14 @@ export class UAsset {
   }
 
   async loadSearchableNames() {
-    const { searchableNamesOffset } = this.summary;
+    const {searchableNamesOffset} = this.summary;
     if (!searchableNamesOffset) return;
 
     throw new Error(`Please implement ObjectFile#loadSearchableNames`);
   }
 
   async loadAssetRegistryData() {
-    const { assetRegistryDataOffset } = this.summary;
+    const {assetRegistryDataOffset} = this.summary;
     if (!assetRegistryDataOffset) return;
 
     this.reader.seekTo(assetRegistryDataOffset);
@@ -192,9 +193,7 @@ export class UAsset {
       return (this.packageIndexLookupTable.get(this.exports[asExport].superIndex) as any).reference.objectName;
     }
 
-    const classObject = this.packageIndexLookupTable.get(exp.templateIndex)?.reference as Shape<
-      typeof FObjectImport
-      >;
+    const classObject = this.packageIndexLookupTable.get(exp.templateIndex)?.reference as Shape<typeof FObjectImport>;
     return classObject?.className;
   }
 }

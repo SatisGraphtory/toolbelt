@@ -9,7 +9,7 @@ import {Marshaller} from "../../marshaller/marshaller";
 
 function cleanString(input: string) {
   let output = "";
-  for (let i = 0; i<input.length; i++) {
+  for (let i = 0; i < input.length; i++) {
     if (input.charCodeAt(i) <= 255) {
       output += input.charAt(i);
     }
@@ -17,10 +17,12 @@ function cleanString(input: string) {
 
   return output;
 }
+
 //
 function cleanNativeClassName(name: string) {
   return name.match(/Class'\/Script\/FactoryGame\.([A-Za-z]+)'/)![1];
 }
+
 //
 // function cleanClassInternalName(name: string) {
 //   const regex = /((Build)|(Desc)|(ResourceSink)|(Schematic)|(Research)|(Recipe)|(BP)|(Equip))_([A-Za-z_\-0-9]+)_C/;
@@ -54,7 +56,7 @@ async function resolvePropertyValue(propertyValue: any, pakFile: PakFile, parsed
     if (propertyValue.length > 0) {
       const returnedValueMap = [];
       for (const item of propertyValue) {
-        returnedValueMap.push(await resolvePropertyValue(item, pakFile,parsedRef?.items ? parsedRef.items : null))
+        returnedValueMap.push(await resolvePropertyValue(item, pakFile, parsedRef?.items ? parsedRef.items : null))
       }
     }
 
@@ -71,7 +73,7 @@ async function resolvePropertyValue(propertyValue: any, pakFile: PakFile, parsed
     if (/^-?\d+$/.test(propertyValue)) {
       // Int value
       return parseInt(propertyValue, 10)
-    } else if(/^-?\d+\.\d+$/.test(propertyValue)) {
+    } else if (/^-?\d+\.\d+$/.test(propertyValue)) {
       // Float value
       return parseFloat(propertyValue)
     } else if (/^((True)|(False))$/.test(propertyValue)) {
@@ -121,7 +123,7 @@ async function resolvePropertyValue(propertyValue: any, pakFile: PakFile, parsed
   }
 }
 
-function tokenize(input: string): {remainingString: string, charactersRead: number, token: any} {
+function tokenize(input: string): { remainingString: string, charactersRead: number, token: any } {
   if (!input.startsWith('(')) {
     throw new Error("Started tokenizing with " + input);
   }
@@ -164,7 +166,7 @@ function tokenize(input: string): {remainingString: string, charactersRead: numb
     let list = [] as any[];
     let useList = false;
 
-    while(iterativeInput) {
+    while (iterativeInput) {
       if (foundKey) {
         if (iterativeInput.startsWith('(')) {
           const {remainingString, charactersRead, token} = tokenize(iterativeInput);
@@ -180,7 +182,7 @@ function tokenize(input: string): {remainingString: string, charactersRead: numb
 
           let matcherSafeguard = '';
 
-          while(!iterativeInput.startsWith(')')) {
+          while (!iterativeInput.startsWith(')')) {
             matcherSafeguard += iterativeInput.slice(0, 1);
             iterativeInput = iterativeInput.slice(1);
           }
@@ -257,7 +259,7 @@ function tokenize(input: string): {remainingString: string, charactersRead: numb
           readChars += match[0].length;
 
           foundKey = false;
-        }  else if (/^[A-Za-z_]+'"\/((Game)|(Script))\/FactoryGame(([A-Za-z\/_0-9\-]+)\.)?([A-Za-z_0-9.\-]+)"'/.test(iterativeInput)) {
+        } else if (/^[A-Za-z_]+'"\/((Game)|(Script))\/FactoryGame(([A-Za-z\/_0-9\-]+)\.)?([A-Za-z_0-9.\-]+)"'/.test(iterativeInput)) {
 
           // weird generic template type
           const match = iterativeInput.match(/^[A-Za-z_]+'"\/((Game)|(Script))\/FactoryGame(([A-Za-z\/_0-9\-]+)\.)?([A-Za-z_0-9.\-]+)"'/);
@@ -290,12 +292,12 @@ function tokenize(input: string): {remainingString: string, charactersRead: numb
         } else {
           const match = iterativeInput.match(/^([A-Za-z_]+)/);
           if (!match) {
-            throw new Error("Could not find match for value:" +  iterativeInput)
+            throw new Error("Could not find match for value:" + iterativeInput)
           }
 
           const matchedString = match[1];
           if (!enumMap.has(matchedString)) {
-            throw new Error("Is not an enum: " +  iterativeInput)
+            throw new Error("Is not an enum: " + iterativeInput)
           }
 
           value = enumMap.get(matchedString)!
@@ -332,7 +334,7 @@ function tokenize(input: string): {remainingString: string, charactersRead: numb
               throw new Error("Cannot use both math and list");
             }
           } else {
-              throw new Error("AAAAAA" + iterativeInput)
+            throw new Error("AAAAAA" + iterativeInput)
           }
         } else if (iterativeInput.startsWith(')')) {
           if (key !== null && value !== null) {
@@ -378,7 +380,7 @@ function tokenize(input: string): {remainingString: string, charactersRead: numb
   }
 }
 
-async function getDocs(pakFile: PakFile, docPath = paths.sourceData.docs, ) {
+async function getDocs(pakFile: PakFile, docPath = paths.sourceData.docs,) {
   const docText = await fs.readFileSync(path.join(docPath, 'Docs.json'), 'utf16le')
 
   const cleanedString = cleanString(docText);

@@ -3,11 +3,10 @@ import {FPropertyTag} from "../../pak/structs/UScript/FPropertyTag";
 import {classReference} from "../../../../headers-to-interfaces/emit/native/references";
 import {getJsonForObject} from "../loader/jsonLoader";
 import {UScriptArray, UScriptArrayMetaData} from "../../pak/structs/UScript/UScriptStrutTypes/UScriptArray";
-import {resolveSlugFromPackageReference} from "../resolvers/resolveSlugs";
+import {getPackageAndFilenameFromPath, resolveSlugFromPackageReference} from "../resolvers/resolveSlugs";
 import {PakFile} from "../../pak/PakFile";
 import consoleInspect from "../../util/consoleInspect";
 import * as SatisfactoryEnums from '../../../../../.DataLanding/interfaces';
-import {type} from "os";
 
 export class Marshaller {
   public dependencies: Set<string> = new Set();
@@ -45,16 +44,16 @@ export class Marshaller {
   addMissingDependency(dependencyKey: string, dependencyValue: any) {
     if (this.blacklistedMissingDependencies.has(dependencyKey)) return;
     if (this.missingDependencies.has(dependencyKey)) {
-      if (!Marshaller.defaultsAreEqual(this.missingDependencies.get(dependencyKey),  dependencyValue)) {
+      if (!Marshaller.defaultsAreEqual(this.missingDependencies.get(dependencyKey), dependencyValue)) {
         if (typeof dependencyValue !== typeof this.missingDependencies.get(dependencyKey)) {
           if (dependencyValue === 'None' || this.missingDependencies.get(dependencyKey) === 'None') {
-              this.blacklistedMissingDependencies.add(dependencyKey);
-              this.missingDependencies.set(dependencyKey, 'None');
-              return;
-            } else {
-              console.log(dependencyKey, dependencyValue, this.missingDependencies.get(dependencyKey));
-              throw new Error("Mismatched dep types!")
-            }
+            this.blacklistedMissingDependencies.add(dependencyKey);
+            this.missingDependencies.set(dependencyKey, 'None');
+            return;
+          } else {
+            console.log(dependencyKey, dependencyValue, this.missingDependencies.get(dependencyKey));
+            throw new Error("Mismatched dep types!")
+          }
         }
 
         this.blacklistedMissingDependencies.add(dependencyKey);
@@ -62,7 +61,7 @@ export class Marshaller {
         if (Array.isArray(dependencyValue)) {
           this.missingDependencies.set(dependencyKey, []);
         } else {
-          switch(typeof dependencyValue) {
+          switch (typeof dependencyValue) {
             case 'number':
               this.missingDependencies.set(dependencyKey, 0);
               break;
@@ -179,7 +178,7 @@ export class Marshaller {
   }
 
   private async marshalArrayProperty(property: Shape<typeof FPropertyTag>,
-                                 docObject: Record<string, any>) {
+                                     docObject: Record<string, any>) {
     const {innerType} = property?.tagMetaData as Shape<typeof UScriptArrayMetaData>;
 
     const returnedArray: any[] = [];
@@ -258,7 +257,7 @@ export class Marshaller {
 
   // InnerType may be redundant because we pass in some sketchy stuff
   private async marshalPropertyByPakType(property: Shape<typeof FPropertyTag>,
-                                     docObject: Record<string, any>, overriddenPropertyType = property?.propertyType) {
+                                         docObject: Record<string, any>, overriddenPropertyType = property?.propertyType) {
     if (!property) return null;
     switch (overriddenPropertyType) {
       case 'EnumProperty':
@@ -297,7 +296,7 @@ export class Marshaller {
 
     if (property?.tag?.assetPathName.startsWith('/Script')) {
       const filePath = property.tag.assetPathName;
-      if (filePath.indexOf('.') == -1) throw new Error("Unknown script found: " + filePath );
+      if (filePath.indexOf('.') == -1) throw new Error("Unknown script found: " + filePath);
 
       const filePathParts = filePath.split('.');
       const fileNameToFind = filePathParts.pop();
@@ -317,7 +316,7 @@ export class Marshaller {
         throw new Error("Okay, what now");
       } else {
         for (const entry of this.pakFile.entries.keys()) {
-          if (entry.includes(fileNameToFind )) {
+          if (entry.includes(fileNameToFind)) {
             if (foundEntry) throw new Error("Multiple files found for " + fileNameToFind);
             foundEntry = entry;
           }
@@ -331,8 +330,10 @@ export class Marshaller {
             // In-place replacement of the proper pakfile structure
             package: filePathParts.join('.'),
             name: fileNameToFind,
-            slug: await resolveSlugFromPackageReference({package: filePathParts.join('.'),
-              name: fileNameToFind}, this.pakFile)
+            slug: await resolveSlugFromPackageReference({
+              package: filePathParts.join('.'),
+              name: fileNameToFind
+            }, this.pakFile)
           };
         }
       }
@@ -412,17 +413,7 @@ export class Marshaller {
   }
 
   async parseDependencyAndAddToList(fullPath: string) {
-    const pathParsed = fullPath.split('/');
-    const fileNameRaw = pathParsed.pop()!;
-    const pathMain = pathParsed.join('/');
-
-    let fileName = fileNameRaw;
-
-    if (fileName.indexOf('.') !== -1) {
-      const fileNameList = fileNameRaw.split('.');
-      fileNameList.pop();
-      fileName = fileNameList.join('.')
-    }
+    let {pathMain, fileName} = getPackageAndFilenameFromPath(fullPath);
 
     this.dependencies.add([pathMain, fileName].join('/'));
 
@@ -524,62 +515,60 @@ export class Marshaller {
       throw new Error("Really not implemented :(");
     }
   }
+
   //
   // marshalClassTagTraversal(traversalNode: any) {
 
-    // return this.marshalClassReferenceTraversal(traversalNode);
-      // let previousTraversalNode = null as any;
-      //
-      // consoleInspect(traversalNode);
-      //
-      // while (traversalNode.outerReference?.reference) {
-      //   previousTraversalNode = traversalNode;
-      //   traversalNode = traversalNode.outerReference.reference;
-      // }
-      //
-      // const firstThingPath = traversalNode.objectName.split('/');
-      //
-      // const firstThingName = firstThingPath.pop().replace(/_C$/g, '');
-      // const firstThingPkg = firstThingPath.join('/').replace('/Game/', 'FactoryGame/Content/');
-      //
-      // this.dependencies.add([firstThingPkg, firstThingName].join('/'));
-      //
-      // return {
-      //   // In-place replacement of the proper pakfile structure
-      //   package: firstThingPkg,
-      //   name: firstThingName,
-      //   slug: resolveSlugFromPackageReference({package: firstThingPkg, name: firstThingName})
-      // };
-      //
+  // return this.marshalClassReferenceTraversal(traversalNode);
+  // let previousTraversalNode = null as any;
+  //
+  // consoleInspect(traversalNode);
+  //
+  // while (traversalNode.outerReference?.reference) {
+  //   previousTraversalNode = traversalNode;
+  //   traversalNode = traversalNode.outerReference.reference;
+  // }
+  //
+  // const firstThingPath = traversalNode.objectName.split('/');
+  //
+  // const firstThingName = firstThingPath.pop().replace(/_C$/g, '');
+  // const firstThingPkg = firstThingPath.join('/').replace('/Game/', 'FactoryGame/Content/');
+  //
+  // this.dependencies.add([firstThingPkg, firstThingName].join('/'));
+  //
+  // return {
+  //   // In-place replacement of the proper pakfile structure
+  //   package: firstThingPkg,
+  //   name: firstThingName,
+  //   slug: resolveSlugFromPackageReference({package: firstThingPkg, name: firstThingName})
+  // };
+  //
 
 
-
-
-
-      // if (traversalNode.classPackage && traversalNode.classPackage.indexOf('/') !== -1) {
-      //   const testThing = traversalNode.classPackage.split('/');
-      //   const testThingName = testThing.pop();
-      //   const testThingPackage = testThing.join('/').replace('/Game/', 'FactoryGame/Content/');
-      //
-      //   this.dependencies.add([testThingPackage, testThingName].join('/'));
-      //
-      //   return {
-      //     // In-place replacement of the proper pakfile structure
-      //     package: testThingPackage,
-      //     name: testThingName,
-      //     slug: resolveSlugFromPackageReference({package: testThingPackage, name: testThingName})
-      //   };
-      // } else {
-      //   console.log(traversalNode);
-      //   for (const entry of this.pakFile.entries.keys()) {
-      //     if (entry.includes(traversalNode.classPackage)) {
-      //       console.log(entry);
-      //       console.log(traversalNode);
-      //     }
-      //   }
-      //
-      //   throw new Error("Unimplemented");
-      // }
+  // if (traversalNode.classPackage && traversalNode.classPackage.indexOf('/') !== -1) {
+  //   const testThing = traversalNode.classPackage.split('/');
+  //   const testThingName = testThing.pop();
+  //   const testThingPackage = testThing.join('/').replace('/Game/', 'FactoryGame/Content/');
+  //
+  //   this.dependencies.add([testThingPackage, testThingName].join('/'));
+  //
+  //   return {
+  //     // In-place replacement of the proper pakfile structure
+  //     package: testThingPackage,
+  //     name: testThingName,
+  //     slug: resolveSlugFromPackageReference({package: testThingPackage, name: testThingName})
+  //   };
+  // } else {
+  //   console.log(traversalNode);
+  //   for (const entry of this.pakFile.entries.keys()) {
+  //     if (entry.includes(traversalNode.classPackage)) {
+  //       console.log(entry);
+  //       console.log(traversalNode);
+  //     }
+  //   }
+  //
+  //   throw new Error("Unimplemented");
+  // }
 
   // }
 }

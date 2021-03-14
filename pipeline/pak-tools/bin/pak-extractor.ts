@@ -4,7 +4,7 @@ import 'reflect-metadata';
 import {utils} from '@local/utils';
 
 // @ts-ignore
-import { paths } from '@local/paths';
+import {paths} from '@local/paths';
 
 import * as fs from 'fs';
 import * as glob from 'glob';
@@ -14,26 +14,26 @@ import {PakFile} from "../src/pak/PakFile";
 import {deserialize, serialize} from "class-transformer";
 import getAllSchematicFilenames from "../src/processor/steps/schematics/getAllSchematicFilenames";
 import getDocs from "../src/processor/steps/docs/getDocs";
-import {resolveExports, unresolvedExports} from "../src/processor/resolvers/resolveExports";
 import getAllRecipeFilenames from "../src/processor/steps/recipes/getAllRecipeFilenames";
-import consoleInspect from "../src/util/consoleInspect";
 import path from "path";
-import {EmitContext} from "../../headers-to-interfaces/emit";
-import {pretty} from "../src/util/pretty";
 
 // import RecipeJson from "../../../.DataLanding/objects/recipes";
-import { UFGRecipe, UFGSchematic, UFGItemDescriptor, UFGPipeConnectionComponent, EResourceForm, EFactoryConnectionDirection, EPipeConnectionType } from '../../../.DataLanding/interfaces';
-
-import * as SatisFactoryClassInterfaces from '../../../.DataLanding/interfaces';
+import {
+  EFactoryConnectionDirection,
+  EPipeConnectionType,
+  EResourceForm,
+  UFGItemDescriptor,
+  UFGRecipe,
+  UFGSchematic
+} from '../../../.DataLanding/interfaces';
 
 import {marshallSubclassGeneric} from "../src/processor/marshaller/genericMarshaller";
 import getAllItemFilenames from "../src/processor/steps/items/getAllItemFilenames";
-import {guessSubclassesFromJsonClassName} from "../src/processor/steps/json/guessSubclassesFromJsonClassName";
 import getAllBuildableFilenames from "../src/processor/steps/buildables/getAllBuildableFilenames";
 import ConnectionMapper from "../src/processor/steps/ConnectionMapper";
-import getAllLocalizationFilenames from "../src/processor/steps/localize/getAllLocalizationFilenames";
 import createEnumRevision from "../src/processor/steps/serialization/generateEnums";
 import {getAllImages} from "../src/processor/steps/images/getAllImages";
+import PakTranslator from "../src/processor/steps/localize/PakTranslator";
 
 const DEFAULT_INSTALL_DIR = '/mnt/a/Games/Epic/SatisfactoryExperimental';
 
@@ -116,34 +116,33 @@ async function main() {
   fs.writeFileSync(pakManifestPath, JSON.stringify([...pakFile.entries.keys()], replacer, 2))
 
   // This is the section handling schematics
-  // const schematicFiles = await getAllSchematicFilenames(fileNameList);
-  //
-  // const {objectMap: schematicMap, dependencies: schematicDependencies } = await marshallSubclassGeneric<UFGSchematic>(pakFile,
-  //   schematicFiles, docObjects, "UFGSchematic")
+  const schematicFiles = await getAllSchematicFilenames(fileNameList);
+
+  const {collapsedObjectMap: schematicMap, dependencies: schematicDependencies } = await marshallSubclassGeneric<UFGSchematic>(pakFile,
+    schematicFiles, docObjects, "UFGSchematic", false, false, true)
 
   /** Get and write out recipes.json **/
-  // const recipeFiles = await getAllRecipeFilenames([...fileNameList, ...schematicDependencies]);
-  //
-  // const {objectMap: recipeMap, dependencies: recipeDependencies, slugToClassMap: recipeSlugMap } = await marshallSubclassGeneric<UFGRecipe>(pakFile,
-  //   recipeFiles, docObjects, "UFGRecipe")
-  //
-  // const recipeMapPath = path.join(paths.dataWarehouse.main, 'Recipes.json');
-  // fs.writeFileSync(recipeMapPath, JSON.stringify(recipeMap, replacer, 2))
-  //
-  // const recipeClassMapPath = path.join(paths.dataWarehouse.main, 'RecipeClasses.json');
-  // fs.writeFileSync(recipeClassMapPath, JSON.stringify(recipeSlugMap, replacer, 2))
-  //
+  const recipeFiles = await getAllRecipeFilenames([...fileNameList, ...schematicDependencies]);
+
+  const {collapsedObjectMap: recipeMap,  slugToClassMap: recipeSlugMap } = await marshallSubclassGeneric<UFGRecipe>(pakFile,
+    recipeFiles, docObjects, "UFGRecipe", false, false, true)
+
+  const recipeMapPath = path.join(paths.dataWarehouse.main, 'Recipes.json');
+  fs.writeFileSync(recipeMapPath, JSON.stringify(recipeMap, replacer, 2))
+
+  const recipeClassMapPath = path.join(paths.dataWarehouse.main, 'RecipeClasses.json');
+  fs.writeFileSync(recipeClassMapPath, JSON.stringify(recipeSlugMap, replacer, 2))
+
 
   /** Get and write out items.json **/
   const itemFiles = await getAllItemFilenames([...fileNameList]);
 
-  const {objectMap: itemMap, dependencies: itemDependencies, slugToClassMap: itemSlugMap } = await marshallSubclassGeneric<UFGItemDescriptor>(pakFile,
-    itemFiles, docObjects, "UFGItemDescriptor")
+  const {collapsedObjectMap: itemMap, dependencies: itemDependencies, slugToClassMap: itemSlugMap } = await marshallSubclassGeneric<UFGItemDescriptor>(pakFile,
+    itemFiles, docObjects, "UFGItemDescriptor", false, false, true)
 
   const allImageFiles = (await pakFile.getFiles(itemDependencies)).filter(file => {
     return file.specialTypes.has('Texture2D')
   })
-
 
 
   const itemMapPath = path.join(paths.dataWarehouse.main, 'Items.json');
@@ -154,8 +153,10 @@ async function main() {
 
   fs.mkdirSync(paths.dataWarehouse.images, { recursive: true });
 
+  const {nameMap: imageNameMap, imageMap, indexFile} = await getAllImages(allImageFiles)
 
-  const {nameMap: imageNameMap, imageMap} = await getAllImages(allImageFiles)
+  const imageIndexPath = path.join(paths.dataWarehouse.images, 'index.ts');
+  fs.writeFileSync(imageIndexPath, indexFile)
 
   const imageNameMapPath = path.join(paths.dataWarehouse.images, 'ImageNameMap.json');
   fs.writeFileSync(imageNameMapPath, JSON.stringify(imageNameMap, replacer, 2))
@@ -169,12 +170,11 @@ async function main() {
     i++;
   }
 
-
   // ** Get and write out buildings.json **/
   const buildableFiles = await getAllBuildableFilenames([...fileNameList]);
 
-  const {objectMap: buildableMap, dependencies: buildingDependencies, slugToClassMap: buildingSlugMap, slugToFileMap: buildingSlugToFileMap } = await marshallSubclassGeneric<any>(pakFile,
-    buildableFiles, docObjects, "AFGBuildable")
+  const {collapsedObjectMap: buildableMap, slugToClassMap: buildingSlugMap, slugToFileMap: buildingSlugToFileMap } = await marshallSubclassGeneric<any>(pakFile,
+    buildableFiles, docObjects, "AFGBuildable", false, false, true)
 
   const buildingMapPath = path.join(paths.dataWarehouse.main, 'Buildings.json');
   fs.writeFileSync(buildingMapPath, JSON.stringify(buildableMap, replacer, 2))
@@ -183,17 +183,43 @@ async function main() {
   fs.writeFileSync(buildingClassMapPath, JSON.stringify(buildingSlugMap, replacer, 2))
 
 
+  const pakTranslator = new PakTranslator();
+
+  pakTranslator.addDefaultSource(buildableMap, ((mapEntry: any) => {
+    return mapEntry?.mDisplayName?.sourceString
+  }))
+
+  pakTranslator.addDefaultSource(recipeMap, ((mapEntry: any) => {
+    if (mapEntry?.mDisplayNameOverride) {
+      const firstItemSlug = mapEntry?.mProduct[0].ItemClass.slug;
+      return itemMap.get(firstItemSlug)?.mDisplayName?.sourceString
+    } else {
+      return mapEntry?.mDisplayName?.sourceString;
+    }
+  }))
+
+  pakTranslator.addDefaultSource(itemMap, ((mapEntry: any, mapKey: string) => {
+    const normalItemPath = mapEntry?.mDisplayName?.sourceString;
+    if (normalItemPath) return normalItemPath;
+    return buildableMap.get(mapKey.replace(/^item-/, 'building-'))?.mDisplayName?.sourceString
+  }))
+
+  /** Write out translations.json  **/
+  const translationPath = path.join(paths.dataWarehouse.translations, 'en.json');
+
+  fs.mkdirSync(paths.dataWarehouse.translations, { recursive: true });
+
+  fs.writeFileSync(translationPath, JSON.stringify(pakTranslator.translationMap, replacer, 2))
+
 
   const verifiedBuildableFiles = new Set([...buildingSlugToFileMap.values()]);
 
-  const {objectMap: pipeMap, slugToClassMap: pipeSlugToClassMap,
-    dependencies: pipeDependencies } = await marshallSubclassGeneric<any>(pakFile,
+  const {objectMap: pipeMap, slugToClassMap: pipeSlugToClassMap} = await marshallSubclassGeneric<any>(pakFile,
     verifiedBuildableFiles,
     docObjects,
     "UFGPipeConnectionComponent", true)
 
-  const {objectMap: beltMap, slugToClassMap: beltSlugToClassMap,
-    dependencies: beltDependencies } = await marshallSubclassGeneric<any>(pakFile,
+  const {objectMap: beltMap, slugToClassMap: beltSlugToClassMap} = await marshallSubclassGeneric<any>(pakFile,
     verifiedBuildableFiles,
     docObjects,
     "UFGFactoryConnectionComponent", true)
@@ -224,7 +250,6 @@ async function main() {
   fs.mkdirSync(paths.dataWarehouse.main, { recursive: true });
 
   fs.writeFileSync(connectionMapPath, connectionMapper.getFinalResourceMapString())
-
 
   /** Write out enums used for serialization.json  **/
   const enumsPath = path.join(paths.dataWarehouse.enums, 'dataEnums.ts');

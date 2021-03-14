@@ -1,11 +1,5 @@
 import {Reader} from "../../../../readers/Reader";
-import {FName, NameMap} from "../FName";
-import {Shape} from "../../../../util/parsers";
-import {UAsset} from "../../../pakfile/UAsset";
-import {Int32, UInt32} from "../../../primitive/integers";
-import {StructPropertyTagMetaData, UScriptStruct} from "../UscriptStruct";
-import {MapPropertyTagMetaData} from "./MapProperty";
-import {TArray} from "../../../containers/TArray";
+import {NameMap} from "../FName";
 
 enum EClassFlags {
   /** No Flags */
@@ -78,14 +72,14 @@ enum EClassFlags {
 
 //TODO: Currently unknown why or how this should work:
 // https://docs.unrealengine.com/en-US/API/Runtime/CoreUObject/UObject/FFieldClass/index.html
-export function FFieldPath (nameMap: NameMap) {
+export function FFieldPath(nameMap: NameMap) {
   return async function FFieldPathReader(reader: Reader) {
 
     // const toReturn = {
-      // Name: await reader.read(FName(nameMap)),
-      //Id = reader.ReadUInt64();
-      //CastFlags = reader.ReadUInt64();
-      // ClassFlags: await reader.read(UInt32) as EClassFlags
+    // Name: await reader.read(FName(nameMap)),
+    //Id = reader.ReadUInt64();
+    //CastFlags = reader.ReadUInt64();
+    // ClassFlags: await reader.read(UInt32) as EClassFlags
     // };
 
     return {

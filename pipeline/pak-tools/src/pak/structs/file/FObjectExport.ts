@@ -8,7 +8,7 @@ import {Shape} from "../../../util/parsers";
 import {FObjectImport} from "./FObjectImport";
 import {FPackageIndex} from "./FPackageIndex";
 
-export function FObjectExportFromExports(index: number,  imports: Shape<typeof FObjectImport>[], exports: Shape<typeof FObjectExport>[]) {
+export function FObjectExportFromExports(index: number, imports: Shape<typeof FObjectImport>[], exports: Shape<typeof FObjectExport>[]) {
   return async function FObjectExportParser(reader: Reader) {
     const exportMapEntry = exports[index];
 

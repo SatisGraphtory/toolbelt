@@ -10,17 +10,20 @@ export function findJsonObject(classSearch: string) {
     jsonRetriever(`U${classSearch}`);
     UObject = `U${classSearch}`;
     retrievalCount++;
-  } catch (e) {}
+  } catch (e) {
+  }
   try {
     jsonRetriever(`A${classSearch}`);
     AObject = `A${classSearch}`;
     retrievalCount++;
-  } catch (e) {}
+  } catch (e) {
+  }
   try {
     jsonRetriever(`${classSearch}`);
     baseObject = `${classSearch}`;
     retrievalCount++;
-  } catch (e) {}
+  } catch (e) {
+  }
 
   if (retrievalCount === 0) {
     throw new Error(`No data found for ${classSearch}`);
@@ -51,7 +54,7 @@ const jsonRetriever = (className: string) => {
   return data;
 };
 
-const cachedPropertyClasses =  Object.keys(JSONFiles).map(key => {
+const cachedPropertyClasses = Object.keys(JSONFiles).map(key => {
   const properties = jsonRetriever(key);
   const setProps: Set<string> = new Set(properties.required);
   return [key, setProps];

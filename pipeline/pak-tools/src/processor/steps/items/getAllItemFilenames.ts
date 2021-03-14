@@ -1,7 +1,9 @@
 async function getAllItemFilenames(pakEntries: string[]) {
   const itemFiles = new Set<string>();
   for (const file of pakEntries) {
-    if(file.match(/\/Desc_.*\.uexp/g)) {
+    if (file.match(/\/Desc_.*\.uexp/g)) {
+      itemFiles.add(file);
+    } else if (file.match(/\/Resource\/.*\.uexp/g)) {
       itemFiles.add(file);
     }
   }

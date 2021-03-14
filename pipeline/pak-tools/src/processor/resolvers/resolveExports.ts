@@ -7,7 +7,6 @@ import {resolveReferenceName} from "./resolveReferences";
 import {dependencyExists, sanitizeDependencies} from "./resolveDependencies";
 import {NameMap} from "../../pak/structs/UScript/FName";
 import {resolvePropertyListMerges} from "./resolvePropertyListMerges";
-import util from "util";
 import {UExports} from "../../pak/pakfile/UExports";
 
 function isDefinedClass(cls: string) {
@@ -133,7 +132,7 @@ export async function resolveExports(pakFile: PakFile, baseObject: UObject, dept
     baseObject.uexports,
     async function (draftState) {
       let currentIndex = 0;
-      while(currentIndex < draftState.length) {
+      while (currentIndex < draftState.length) {
         const originalExport = draftState[currentIndex];
         currentIndex++;
 

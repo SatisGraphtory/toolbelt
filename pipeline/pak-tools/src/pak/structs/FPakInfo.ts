@@ -1,6 +1,6 @@
 import * as util from 'util';
 
-import { PakVersion } from '../PakFile';
+import {PakVersion} from '../PakFile';
 
 import {Reader} from "../../readers/Reader";
 import {Int32, Int64, Int8, UInt32, UInt8} from "../primitive/integers";
@@ -53,7 +53,7 @@ export function FPakInfo(version: PakVersion) {
       throw new Error(`Expected version to be within 0:${version}, but instead got ${info.version}`);
     }
 
-    return { ...info, compressionMethods };
+    return {...info, compressionMethods};
   };
 }
 

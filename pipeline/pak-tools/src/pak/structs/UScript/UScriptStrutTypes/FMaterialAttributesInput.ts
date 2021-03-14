@@ -1,9 +1,7 @@
 import {Reader} from "../../../../readers/Reader";
-import {Int32, UInt32, UInt8} from "../../../primitive/integers";
+import {Int32, UInt32} from "../../../primitive/integers";
 import {UAsset} from "../../../pakfile/UAsset";
-import {FPackageIndex} from "../../file/FPackageIndex";
 import {FName} from "../FName";
-import {Float} from "../../../primitive/decimals";
 
 export function FMaterialAttributesInput(asset: UAsset) {
   return async function FScalarMaterialInputReader(reader: Reader) {

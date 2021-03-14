@@ -1,4 +1,4 @@
-import { Float } from '../../../primitive/decimals';
+import {Float} from '../../../primitive/decimals';
 import {Reader} from "../../../../readers/Reader";
 
 export async function FLinearColor(reader: Reader) {

@@ -57,6 +57,7 @@ export function FPackageFileSummary(pakVersion: PakVersion) {
     };
   }
 }
+
 // https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/CoreUObject/Public/UObject/PackageFileSummary.h#L17-L44
 export async function FGenerationInfo(reader: Reader) {
   return {

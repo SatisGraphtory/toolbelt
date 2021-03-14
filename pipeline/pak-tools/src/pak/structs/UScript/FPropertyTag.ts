@@ -31,7 +31,7 @@ export type TagMetaData =
 
 // https://github.com/EpicGames/UnrealEngine/blob/6c20d9831a968ad3cb156442bebb41a883e62152/Engine/Source/Runtime/CoreUObject/Private/UObject/PropertyTag.cpp#L80-L169
 export function FPropertyTag(asset: UAsset, shouldRead: boolean, depth: number) {
-  return async function(reader: Reader) {
+  return async function (reader: Reader) {
     const names: NameMap = asset.names;
 
     const name = await reader.read(FName(names));
@@ -145,7 +145,7 @@ export function FPropertyTag(asset: UAsset, shouldRead: boolean, depth: number) 
 }
 
 export function Tag(asset: UAsset, propertyType: string, tagMetaData: TagMetaData, depth: number, readSize: number, trackingReader: Reader) {
-  return async function(reader: Reader) {
+  return async function (reader: Reader) {
     let tag = null;
 
     if (propertyType === 'BooleanProperty') {
@@ -239,7 +239,7 @@ export function Tag(asset: UAsset, propertyType: string, tagMetaData: TagMetaDat
 
 export async function readFPropertyTagLoop(reader: Reader, asset: UAsset): Promise<any[]> {
   const propertyList: Shape<typeof FPropertyTag>[] = [];
-  for (;;) {
+  for (; ;) {
     const property = await reader.read(FPropertyTag(asset, true, 0));
     if (!property) {
       break;

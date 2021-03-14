@@ -3,18 +3,16 @@ import {Marshaller} from "./marshaller";
 import {UObject} from "../../pak/pakfile/UObject";
 import {findAdditionalClasses, findMainClass, resolveExports} from "../resolvers/resolveExports";
 import {resolveSlugFromPath} from "../resolvers/resolveSlugs";
-import {getJsonForObject} from "../loader/jsonLoader";
-import consoleInspect from "../../util/consoleInspect";
 import {guessSubclassesFromJsonClassName} from "../steps/json/guessSubclassesFromJsonClassName";
 
 const objectCache = new Map<string, any>();
 const loadedNonMainClasses = new Map<string, boolean>();
 
 async function marshallObject<T>(pakFile: PakFile, uObject: UObject,
-                              docEntry: Record<string, Record<string, any>>,
-                              uObjectMarshaller: Marshaller,
-                              baseClass: string, loadNonMainClasses: boolean,
-                                 mainClassToFind: string ) {
+                                 docEntry: Record<string, Record<string, any>>,
+                                 uObjectMarshaller: Marshaller,
+                                 baseClass: string, loadNonMainClasses: boolean,
+                                 mainClassToFind: string) {
   // if (objectCache.get(uObject.uasset.filename)) {
   //   if (loadNonMainClasses && loadedNonMainClasses.get(uObject.uasset.filename)) {
   //     return objectCache.get(uObject.uasset.filename)
@@ -30,7 +28,7 @@ async function marshallObject<T>(pakFile: PakFile, uObject: UObject,
   const returnedObjects = [] as any[];
 
   if (mainClass?.exportTypes === mainClassToFind) {
-    const toReturn =  {
+    const toReturn = {
       type: mainClass.exportTypes,
       filename: uObject.uasset.filename,
       slug: await resolveSlugFromPath(uObject.uasset.filename, pakFile),
@@ -80,7 +78,8 @@ export async function marshallSubclassGeneric<T>(pakFile: PakFile, pakFiles: Set
                                                  docObject: Record<string, Record<string, Record<string, any>>>,
                                                  unrealClassNameInput: string,
                                                  searchNonMainClasses = false,
-                                                 limitToProvidedDocs = false) {
+                                                 limitToProvidedDocs = false,
+                                                 collapseObjectMap = false) {
 
   const uObjectEntries = await pakFile.getFiles([...pakFiles])
 
@@ -106,7 +105,7 @@ export async function marshallSubclassGeneric<T>(pakFile: PakFile, pakFiles: Set
 
     for (const objectEntry of uObjectEntries) {
       const name = objectEntry.uasset.filename.match(/^.*\/([A-Za-z_0-9\-]+)\.uasset/)![1];
-      const correspondingDocsEntry = findActualObjectName(providedObjects, name + "_C")|| {};
+      const correspondingDocsEntry = findActualObjectName(providedObjects, name + "_C") || {};
 
       if (limitToProvidedDocs && Object.keys(correspondingDocsEntry).length === 0) {
         continue;
@@ -145,8 +144,21 @@ export async function marshallSubclassGeneric<T>(pakFile: PakFile, pakFiles: Set
     }
   }
 
+  const collapsedObjectMap = new Map<string, T>();
+
+  if (collapseObjectMap) {
+    for (const [key, entries] of objectMap.entries()) {
+      if (entries.length !== 1) {
+        console.log(entries);
+        throw new Error("Could not collapse this entry because there were multiple entries");
+      }
+      collapsedObjectMap.set(key, entries[0]);
+    }
+  }
+
   return {
     objectMap,
+    collapsedObjectMap,
     slugToFileMap,
     slugToClassMap,
     classToFilenameMap: classMap,

@@ -14,7 +14,7 @@ export function FPackageIndexEntry(
   imports: Shape<typeof FObjectImport>[],
   exports: Shape<typeof FObjectExport>[],
 ) {
-  return async function(reader: Reader): Promise<FPackageIndexType> {
+  return async function (reader: Reader): Promise<FPackageIndexType> {
     if (index === 0) {
       return {
         reference: null,
@@ -59,7 +59,7 @@ export function FPackageIndex(
   exports: Shape<typeof FObjectExport>[],
   index?: number
 ) {
-  return async function(reader: Reader) {
+  return async function (reader: Reader) {
     if (index === undefined) {
       const readIndex = await reader.read(Int32);
 

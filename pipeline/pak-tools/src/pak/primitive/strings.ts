@@ -1,4 +1,4 @@
-import { Int32 } from './integers';
+import {Int32} from './integers';
 import {Reader} from "../../readers/Reader";
 
 const NULL = Buffer.from([0x00]);
@@ -39,6 +39,7 @@ export function Utf8String(length: number) {
     return string;
   };
 }
+
 export function Utf16String(length: number) {
   return async function Utf8StringReader(reader: Reader) {
     const data = await reader.readBytes(length * 2);

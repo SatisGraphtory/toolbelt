@@ -1,4 +1,4 @@
-import { Reader } from './Reader';
+import {Reader} from './Reader';
 
 export class ChildReader extends Reader {
   constructor(private parent: Reader, private offset: number, public size: number) {

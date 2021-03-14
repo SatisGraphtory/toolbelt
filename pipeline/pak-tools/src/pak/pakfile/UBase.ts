@@ -1,1 +1,2 @@
-export default interface UBase {};
+export default interface UBase {
+};

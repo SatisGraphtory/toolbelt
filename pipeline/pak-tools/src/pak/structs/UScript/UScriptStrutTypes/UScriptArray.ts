@@ -1,4 +1,4 @@
-import { FText } from './FText';
+import {FText} from './FText';
 import {Shape} from "../../../../util/parsers";
 import {Reader} from "../../../../readers/Reader";
 import {FName, NameMap} from "../FName";

@@ -1,4 +1,4 @@
-import { FVector2D } from './FVector2D';
+import {FVector2D} from './FVector2D';
 import {UInt8} from "../../../primitive/integers";
 import {Reader} from "../../../../readers/Reader";
 

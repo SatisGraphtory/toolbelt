@@ -5,15 +5,10 @@ import {FPakEntry} from "./structs/FPakEntry";
 import {Reader} from "../readers/Reader";
 import {UnrealString} from "./primitive/strings";
 import {UInt32} from "./primitive/integers";
-import { ChildReader } from "../readers/ChildReader";
-import {Transform, Type} from "class-transformer";
-import path from "path";
+import {ChildReader} from "../readers/ChildReader";
 import {UAsset} from "./pakfile/UAsset";
 import {UObject} from "./pakfile/UObject";
-import {asyncArrayForEach, asyncSetForEach} from "../util/asyncEnumerators";
-import {FObjectExport} from "./structs/file/FObjectExport";
 import {ULocalizationResource} from "./pakfile/ULocalizationResource";
-import UBase from "./pakfile/UBase";
 
 export enum PakVersion {
   Initial = 1,
@@ -24,7 +19,7 @@ export enum PakVersion {
   DeleteRecords = 6,
   EncryptionKeyGuid = 7,
   FNameBasedCompressionMethod = 8,
-  FrozenIndex= 9,
+  FrozenIndex = 9,
   PathHashIndex = 10,
   FNV64BugFix = 11
 }
@@ -58,7 +53,8 @@ export class PakFile {
     }
   }
 
-  constructor(private reader: Reader) {}
+  constructor(private reader: Reader) {
+  }
 
   /**
    * Reads the file's info and index.
@@ -106,7 +102,7 @@ export class PakFile {
    * @see https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/PakFile/Private/IPlatformFilePak.cpp#L4254-L4356
    */
   async loadIndex() {
-    const { indexOffset, indexSize, indexHash, version } = this.info;
+    const {indexOffset, indexSize, indexHash, version} = this.info;
 
     this.reader.seekTo(indexOffset);
     await this.reader.checkHash('index', indexSize, indexHash);
@@ -149,7 +145,7 @@ export class PakFile {
       throw new Error(`${context} is corrupt: hash mismatch`);
     }
   }
-  
+
   /**
    * Look up a specific file within the pak.
    */
@@ -169,9 +165,9 @@ export class PakFile {
     const reader = new ChildReader(headerReader, headerReader.position, entry.size);
     // await reader.checkHash(filename, entry.size, entry.hash);
 
-    return { filename, entry, reader };
+    return {filename, entry, reader};
   }
-  
+
   private async getUAsset(filename: string, packageFile: any) {
     const assetFile = new UAsset(filename, packageFile.reader, packageFile.entry, this);
     await assetFile.initialize();
@@ -189,7 +185,7 @@ export class PakFile {
     return packageFile;
   }
 
-  public async getLocalizationFile(path:string) {
+  public async getLocalizationFile(path: string) {
     const localizationResource = await this.getPackageFile(path);
     if (!localizationResource) throw new Error("Could not find localization resource " + path)
     const uObjectFile = new ULocalizationResource(this.info.version, localizationResource.reader, localizationResource.entry, path);

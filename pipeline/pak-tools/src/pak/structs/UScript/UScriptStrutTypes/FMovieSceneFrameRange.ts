@@ -1,4 +1,4 @@
-import { TRange } from './TRange';
+import {TRange} from './TRange';
 import {Reader} from "../../../../readers/Reader";
 
 export async function FMovieSceneFrameRange(reader: Reader) {

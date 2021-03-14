@@ -1,6 +1,5 @@
 import {Shape} from "../../util/parsers";
 import {FPropertyTag} from "../../pak/structs/UScript/FPropertyTag";
-import consoleInspect from "../../util/consoleInspect";
 
 function getPropertyNames(properties: Shape<typeof FPropertyTag>[]): string[] {
   return properties.map(item => item?.name).filter(item => item) as string[];
@@ -123,12 +122,15 @@ export async function resolvePropertyListMerges(basePropertyList: Shape<typeof F
 
       DebugCopyOfProperties.delete(overlappingPropertyName);
     } else {
-      console.log("==============")
-      console.log(basePropertyList)
-      console.log("~~~~~~~~~~~~~~~")
-      console.log(subclassPropertyList)
-      console.log(overlappingPropertyName)
-      throw new Error("Multiples detected")
+      const theseProperties = getPropertiesWithName(subclassPropertyList, overlappingPropertyName);
+      fullPropertyList.push(theseProperties[0]);
+      DebugCopyOfProperties.delete(overlappingPropertyName);
+      // console.log("==============")
+      // console.log(basePropertyList)
+      // console.log("~~~~~~~~~~~~~~~")
+      // console.log(subclassPropertyList)
+      // console.log(overlappingPropertyName)
+      // throw new Error("Multiples detected")
     }
   }
 

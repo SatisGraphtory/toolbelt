@@ -1,11 +1,7 @@
 import BuildingJson from '../../../../../../.DataWarehouse/main/BuildingClasses.json';
 import ItemJson from '../../../../../../.DataWarehouse/main/ItemClasses.json';
 import RecipeJson from '../../../../../../.DataWarehouse/main/RecipeClasses.json';
-import {
-  buildingEnums,
-  itemEnums,
-  recipeEnums,
-} from '../../../../../../.DataWarehouse/enums/dataEnums';
+import {buildingEnums, itemEnums, recipeEnums,} from '../../../../../../.DataWarehouse/enums/dataEnums';
 
 const formatEntry = (
   key: string,

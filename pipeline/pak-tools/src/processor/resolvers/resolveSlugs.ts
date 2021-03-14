@@ -1,33 +1,9 @@
 import {packageReference} from "../../../../headers-to-interfaces/emit/native/references";
 import {PakFile} from "../../pak/PakFile";
-import {UObject} from "../../pak/pakfile/UObject";
-import {guessSubclassesFromJsonClassName} from "../steps/json/guessSubclassesFromJsonClassName";
+import {guessUnrealSubclassesFromJsonClassName} from "../steps/json/guessSubclassesFromJsonClassName";
 import {findMainClass, resolveExports} from "./resolveExports";
 
-export function resolveSlug(name: string, packagePath: string) {
-  if (/^Build_(.*)_C$/.test(name)) {
-    const buildingName = name.match(/^Build_(.*)_C$/)![1];
-    return `building-${toKebabCase(buildingName)}`;
-  }
-  // BUILD_ -> building
-  // DESC_BLAH -> item
-
-  switch(name) {
-    case 'BP_WorkBenchComponent_C':
-      return 'building-work-bench-integrated'
-    case 'FGBuildableAutomatedWorkBench':
-      return 'building-work-bench-component';
-    case 'BP_BuildGun_C':
-    case 'FGBuildGun':
-      return 'building-build-gun';
-    case 'BP_WorkshopComponent_C':
-      return 'building-workshop'
-  }
-
-  throw new Error("Unknown slug " + name + " with path " + packagePath)
-}
-
-export async function resolveSlugFromPath(fullPath: string, pakFile: PakFile) {
+export function getPackageAndFilenameFromPath(fullPath: string) {
   const pathParsed = fullPath.split('/');
   const fileNameRaw = pathParsed.pop()!;
   const pathMain = pathParsed.join('/');
@@ -39,6 +15,11 @@ export async function resolveSlugFromPath(fullPath: string, pakFile: PakFile) {
     fileNameList.pop();
     fileName = fileNameList.join('.')
   }
+  return {pathMain, fileName};
+}
+
+export async function resolveSlugFromPath(fullPath: string, pakFile: PakFile) {
+  let {pathMain, fileName} = getPackageAndFilenameFromPath(fullPath);
 
   let slug = await resolveSlugFromPackageReference({
     package: pathMain,
@@ -52,16 +33,16 @@ export async function resolveSlugFromPath(fullPath: string, pakFile: PakFile) {
   return slug;
 }
 
-const schematicClasses = new Set(guessSubclassesFromJsonClassName('UFGSchematic'));
-const recipeClasses = new Set(guessSubclassesFromJsonClassName('UFGRecipe'));
-const itemClasses = new Set(guessSubclassesFromJsonClassName('UFGItemDescriptor'));
-const buildingClasses = new Set(guessSubclassesFromJsonClassName('AFGBuildable'));
+const schematicClasses = new Set(guessUnrealSubclassesFromJsonClassName('UFGSchematic'));
+const recipeClasses = new Set(guessUnrealSubclassesFromJsonClassName('UFGRecipe'));
+const itemClasses = new Set(guessUnrealSubclassesFromJsonClassName('UFGItemDescriptor'));
+const buildingClasses = new Set(guessUnrealSubclassesFromJsonClassName('AFGBuildable'));
 
 const packagePathCache = new Map<string, any>()
 
 export async function resolveSlugFromPackageReference(packageReference: packageReference<any>,
-                                                   pakFile: PakFile,
-                                                   createBackupSlug = true) {
+                                                      pakFile: PakFile,
+                                                      createBackupSlug = true) {
   const {name, package: packagePath} = packageReference;
   const keyToFind = name + '::::' + packagePath + '::::' + createBackupSlug;
   if (!packagePathCache.has(keyToFind)) {
@@ -74,19 +55,22 @@ export async function resolveSlugFromPackageReference(packageReference: packageR
 
 
 async function resolveSlugFromPackageReferenceImpl(packageReference: packageReference<any>,
-                                                pakFile: PakFile,
-                                                createBackupSlug: boolean ) {
+                                                   pakFile: PakFile,
+                                                   createBackupSlug: boolean) {
   const {name, package: packagePath} = packageReference;
 
-  switch(name) {
+  switch (name) {
     case 'BP_WorkBenchComponent_C':
+    case 'BP_WorkBenchComponent':
       return 'building-work-bench-integrated'
     case 'FGBuildableAutomatedWorkBench':
-      return 'building-work-bench-component';
+      return 'building-automated-work-bench';
     case 'BP_BuildGun_C':
+    case 'BP_BuildGun':
     case 'FGBuildGun':
-      return 'building-build-gun';
+      return 'building-equipment-descriptor-build-gun';
     case 'BP_WorkshopComponent_C':
+    case 'BP_WorkshopComponent':
       return 'building-workshop'
   }
 
@@ -95,30 +79,37 @@ async function resolveSlugFromPackageReferenceImpl(packageReference: packageRefe
   if (pakFile.entries.has(possibleFilePath)) {
     const referenceFile = (await pakFile.getFiles([possibleFilePath]))[0];
 
-    if (referenceFile.specialTypes.has('Texture2D')) {
-      return `image-${toKebabCase(name)}`
-    }
+    try {
+      if (referenceFile.specialTypes.has('Texture2D')) {
+        return `image-${toKebabCase(name)}`
+      }
 
-    const resolvedExports = await resolveExports(pakFile, referenceFile);
-    const mainClass = await findMainClass(resolvedExports);
+      const resolvedExports = await resolveExports(pakFile, referenceFile);
+      const mainClass = await findMainClass(resolvedExports);
 
-    if (mainClass?.exportTypes && schematicClasses.has(mainClass.exportTypes)) {
-      const schematicName = name.match(/^(Schematic_|SC_)?(.*?)(_C)?$/)![2];
-      return `schematic-${toKebabCase(schematicName)}`;
-    }
+      if (mainClass?.exportTypes && schematicClasses.has(mainClass.exportTypes)) {
+        const schematicName = name.match(/^(Schematic_|SC_)?(.*?)(_C)?$/)![2];
+        return `schematic-${toKebabCase(schematicName)}`;
+      }
 
-    if (mainClass?.exportTypes && recipeClasses.has(mainClass.exportTypes)) {
-      const recipeName = name.match(/^Recipe_(.*?)(_C)?$/)![1];
-      return `recipe-${toKebabCase(recipeName)}`;
-    }
+      if (mainClass?.exportTypes && recipeClasses.has(mainClass.exportTypes)) {
+        const recipeName = name.match(/^Recipe_(.*?)(_C)?$/)![1];
+        return `recipe-${toKebabCase(recipeName)}`;
+      }
 
-    if (mainClass?.exportTypes && itemClasses.has(mainClass.exportTypes)) {
-      const itemName = name.match(/^(BP_|Desc_)(.*?)(_C)?$/)![2];
-      return `item-${toKebabCase(itemName)}`;
-    }
-    if (mainClass?.exportTypes && buildingClasses.has(mainClass.exportTypes)) {
-      const buildingName = name.match(/^Build_(.*?)(_C)?$/)![1];
-      return `building-${toKebabCase(buildingName)}`;
+      if (mainClass?.exportTypes && itemClasses.has(mainClass.exportTypes)) {
+        const itemName = name.match(/^(BP_|Desc_)(.*?)(_C)?$/)![2];
+        return `item-${toKebabCase(itemName)}`;
+      }
+      if (mainClass?.exportTypes && buildingClasses.has(mainClass.exportTypes)) {
+        const buildingName = name.match(/^(Build_|BP)(.*?)(_C)?$/)![2];
+        return `building-${toKebabCase(buildingName)}`;
+      }
+    } catch(e) {
+      const resolvedExports = await resolveExports(pakFile, referenceFile);
+      const mainClass = await findMainClass(resolvedExports);
+      console.log("Unprocessed slug", mainClass?.exportTypes, name, e)
+      process.exit(1);
     }
   }
 

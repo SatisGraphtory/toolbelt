@@ -8,11 +8,10 @@ import {UExports} from "./UExports";
 import {v4 as uuidv4} from "uuid";
 import {PakVersion} from "../PakFile";
 import {UTexture2D} from "./uexports/UTexture2D";
-import {ChildReader} from "../../readers/ChildReader";
-import UBase from "./UBase";
 
 export class UObject {
-  constructor(private pakVersion: PakVersion, public uasset: UAsset, private uexpReader: Reader, private ubulkReader?: Reader) {}
+  constructor(private pakVersion: PakVersion, public uasset: UAsset, private uexpReader: Reader, private ubulkReader?: Reader) {
+  }
 
   public readonly uuid: string = uuidv4();
 

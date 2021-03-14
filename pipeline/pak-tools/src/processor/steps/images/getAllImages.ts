@@ -37,6 +37,10 @@ export async function getAllImages(objectFiles: UObject[]) {
       actualImageName = actualNameParts.pop()!
     }
 
+    if (/^[0-9]/.test(actualImageName)) {
+      actualImageName = 'Image_' + actualImageName
+    }
+
     let slugName = file.uasset.filename;
 
     const fileNameList = slugName.split('.');
@@ -46,7 +50,7 @@ export async function getAllImages(objectFiles: UObject[]) {
     slugName = `image-${toKebabCase(nameRetrieval.pop()!)}`
 
     // Always refer to the 256 version
-    reverseFilenameMap.set(slugName, actualImageName.replace('####', '') + '.256');
+    reverseFilenameMap.set(slugName, actualImageName.replace('####', ''));
 
     if (!imageResolutionMaps.has(actualImageName)) {
       imageResolutionMaps.set(actualImageName, [])
@@ -79,7 +83,7 @@ export async function getAllImages(objectFiles: UObject[]) {
     for (const resolution of [64, 256]) {
       const properImageName = imageName.replace('####', '') + '.' + resolution
       const imageData = imageDatabase.get(imageName)!;
-      const clonedImage = imageData.clone();
+      const clonedImage = imageData.clone().resize(resolution, resolution, {fit: 'cover'});
       finalImageMap.set(properImageName, clonedImage.png({
         // We get a decent amount (~5%) of additional compression from this.
         adaptiveFiltering: true,
@@ -88,8 +92,14 @@ export async function getAllImages(objectFiles: UObject[]) {
     }
   }
 
+  const imports = [...finalImageMap.keys()].map(item => `import ${item.replace(/\./g, '_')} from './${item}.png'`).join('\n')
+  const manifest = `export const manifest = [
+${[...finalImageMap.keys()].map(item => `\t"${item}.png"`).join(',\n')}]`
+  const exportedEntries = `const entries = {
+${[...finalImageMap.keys()].map(item => `\t${item.replace(/\./g, '_')}`).join(',\n')}\n}\n\nexport default entries;`
   return {
     imageMap: finalImageMap,
-    nameMap: reverseFilenameMap
+    nameMap: reverseFilenameMap,
+    indexFile: `${imports}\n\n${manifest}\n\n${exportedEntries}\n`
   }
 }

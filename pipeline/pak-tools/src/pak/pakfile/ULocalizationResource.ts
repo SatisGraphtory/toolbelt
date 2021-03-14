@@ -5,10 +5,8 @@
 import {Reader} from "../../readers/Reader";
 import {v4 as uuidv4} from "uuid";
 import {PakVersion} from "../PakFile";
-import UBase from "./UBase";
 import {Shape} from "../../util/parsers";
 import {FPakEntry} from "../structs/FPakEntry";
-import {UObject} from "./UObject";
 import {compareFGuid, FGuid} from "../structs/UScript/UScriptStrutTypes/FGuid";
 import {Int32, Int64, UInt32, UInt8} from "../primitive/integers";
 import {FTextLocalizationResourceString} from "../structs/localization/FTextLocalizationResourceString";
@@ -82,7 +80,7 @@ export class ULocalizationResource {
           this.reader.seekTo(currentFileOffset);
 
           for (let i = 0; i < tmpLocalizedStringArray.length; i++) {
-            localizedStringArray.push({ string: tmpLocalizedStringArray[i], refCount: -1 });
+            localizedStringArray.push({string: tmpLocalizedStringArray[i], refCount: -1});
           }
         }
       }
@@ -108,7 +106,7 @@ export class ULocalizationResource {
       for (let k = 0; k < keyCount; k++) {
         const key = await this.readFTextKey(versionNumber);
 
-        const newEntry: Shape<typeof FEntry> = { localizedString: '', sourceStringHash: 0 };
+        const newEntry: Shape<typeof FEntry> = {localizedString: '', sourceStringHash: 0};
         newEntry.sourceStringHash = await this.reader.read(UInt32);
 
         if (versionNumber >= LocResVersion.COMPACT) {
@@ -144,7 +142,7 @@ export class ULocalizationResource {
     if (versionNumber >= LocResVersion.OPTIMIZED) {
       text = await this.reader.read(FTextKey);
     } else {
-      text = { string: await this.reader.read(UnrealString), stringHash: 0 };
+      text = {string: await this.reader.read(UnrealString), stringHash: 0};
     }
     return text;
   }

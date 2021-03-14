@@ -1,5 +1,5 @@
-import { FMaterialInput } from './FMaterialInput';
-import { FVector } from './FVector';
+import {FMaterialInput} from './FMaterialInput';
+import {FVector} from './FVector';
 import {Reader} from "../../../../readers/Reader";
 import {NameMap} from "../FName";
 import {Int16, UInt8} from "../../../primitive/integers";

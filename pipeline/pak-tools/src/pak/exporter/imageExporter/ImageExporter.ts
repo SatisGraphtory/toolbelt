@@ -17,7 +17,7 @@ export class ImageExporter {
    */
   private static toPNG(width: number, height: number, buffer: any) {
     // create an instance of PNG
-    const png = new PNG({ width, height, inputHasAlpha: true });
+    const png = new PNG({width, height, inputHasAlpha: true});
     // set the data to the buffer
     png.data = buffer;
 

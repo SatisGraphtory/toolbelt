@@ -1,5 +1,5 @@
-import { FColor } from './FColor';
-import { FMaterialInput } from './FMaterialInput';
+import {FColor} from './FColor';
+import {FMaterialInput} from './FMaterialInput';
 import {NameMap} from "../FName";
 import {Reader} from "../../../../readers/Reader";
 import {Int16, UInt8} from "../../../primitive/integers";

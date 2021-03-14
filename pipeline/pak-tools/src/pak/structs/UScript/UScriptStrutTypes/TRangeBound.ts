@@ -7,7 +7,7 @@ enum ERangeBoundType {
   RangeOpen,
 }
 
-export function  TRangeBound(readSize: number) {
+export function TRangeBound(readSize: number) {
   return async function TRangeBoundReader(reader: Reader) {
     const boundType = (await reader.read(Int8)) as ERangeBoundType;
 

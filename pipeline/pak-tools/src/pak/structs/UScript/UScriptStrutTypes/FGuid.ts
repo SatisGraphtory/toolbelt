@@ -1,5 +1,3 @@
-
-
 // https://github.com/SatisfactoryModdingUE/UnrealEngine/blob/4.22-CSS/Engine/Source/Runtime/Core/Private/Misc/Guid.cpp#L264-L267
 import {UInt32} from "../../../primitive/integers";
 import {Reader} from "../../../../readers/Reader";

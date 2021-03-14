@@ -10,9 +10,10 @@ type ReadTracker = {
 
 export abstract class Reader {
   abstract size: number;
+
   abstract async readBytesAt(position: number, length: number): Promise<Buffer>;
 
-  private readTracker: ReadTracker = { read: 0, child: null, originalPosition: 0 };
+  private readTracker: ReadTracker = {read: 0, child: null, originalPosition: 0};
 
   private _position = 0;
 
