@@ -1,6 +1,8 @@
 import {packageReference} from "../../../../headers-to-interfaces/emit/native/references";
 import {PakFile} from "../../pak/PakFile";
 import {UObject} from "../../pak/pakfile/UObject";
+import {guessSubclassesFromJsonClassName} from "../steps/json/guessSubclassesFromJsonClassName";
+import {findMainClass, resolveExports} from "./resolveExports";
 
 export function resolveSlug(name: string, packagePath: string) {
   if (/^Build_(.*)_C$/.test(name)) {
@@ -49,59 +51,32 @@ export async function resolveSlugFromPath(fullPath: string, pakFile: PakFile) {
 
   return slug;
 }
+
+const schematicClasses = new Set(guessSubclassesFromJsonClassName('UFGSchematic'));
+const recipeClasses = new Set(guessSubclassesFromJsonClassName('UFGRecipe'));
+const itemClasses = new Set(guessSubclassesFromJsonClassName('UFGItemDescriptor'));
+const buildingClasses = new Set(guessSubclassesFromJsonClassName('AFGBuildable'));
+
+const packagePathCache = new Map<string, any>()
+
 export async function resolveSlugFromPackageReference(packageReference: packageReference<any>,
-                                                pakFile: PakFile,
-                                                createBackupSlug = true) {
+                                                   pakFile: PakFile,
+                                                   createBackupSlug = true) {
   const {name, package: packagePath} = packageReference;
-
-  if (/^FactoryGame\/Content\/FactoryGame\/Buildable/.test(packagePath)) {
-    if (/^Build_(.*)(_C)?$/.test(name)) {
-      const buildingName = name.match(/^Build_(.*?)(_C)?$/)![1];
-      return `building-${toKebabCase(buildingName)}`;
-    } else if (/^Desc_(.*)(_C)?$/.test(name)) {
-      const buildingName = name.match(/^Desc_(.*?)(_C)?$/)![1];
-      return `item-${toKebabCase(buildingName)}`;
-    }
+  const keyToFind = name + '::::' + packagePath + '::::' + createBackupSlug;
+  if (!packagePathCache.has(keyToFind)) {
+    const returnValue = await resolveSlugFromPackageReferenceImpl(packageReference, pakFile, createBackupSlug)
+    packagePathCache.set(keyToFind, returnValue);
   }
 
-  // It's a resource aka item
-  if (/^FactoryGame\/Content\/FactoryGame\/Resource/.test(packagePath)
-    || /^FactoryGame\/Content\/FactoryGame\/.*\/Parts/.test(packagePath)) {
-    if (/^Desc_(.*)(_C)?$/.test(name)) {
-      const itemName = name.match(/^Desc_(.*?)(_C)?$/)![1];
-      return `item-${toKebabCase(itemName)}`;
-    } else if (/^BP_(.*)(_C)?$/.test(name)) {
-      const itemName = name.match(/^BP_(.*?)(_C)?$/)![1];
-      return `item-${toKebabCase(itemName)}`;
-    }
-  }
+  return packagePathCache.get(keyToFind);
+}
 
-  // It's an equipment aka item
-  if (/^FactoryGame\/Content\/FactoryGame\/Equipment/.test(packagePath)) {
-    if (/^Desc_(.*)(_C)?$/.test(name)) {
-      const itemName = name.match(/^Desc_(.*?)(_C)?$/)![1];
-      return `item-${toKebabCase(itemName)}`;
-    } else if (/^BP_(.*)(_C)?$/.test(name)) {
-      const itemName = name.match(/^BP_(.*?)(_C)?$/)![1];
-      return `item-${toKebabCase(itemName)}`;
-    }
-  }
 
-  // It's a recipe
-  if (/^FactoryGame\/Content\/FactoryGame\/Recipes/.test(packagePath)) {
-    if (/^Recipe_(.*)(_C)?$/.test(name)) {
-      const recipeName = name.match(/^Recipe_(.*?)(_C)?$/)![1];
-      return `recipe-${toKebabCase(recipeName)}`;
-    }
-  }
-
-  // It's a schematic
-  if (/^FactoryGame\/Content\/FactoryGame\/Schematics/.test(packagePath)) {
-    if (/^(Schematic_|SC_)?(.*)(_C)?$/.test(name)) {
-      const recipeName = name.match(/^(Schematic_|SC_)?(.*?)(_C)?$/)![2];
-      return `schematic-${toKebabCase(recipeName)}`;
-    }
-  }
+async function resolveSlugFromPackageReferenceImpl(packageReference: packageReference<any>,
+                                                pakFile: PakFile,
+                                                createBackupSlug: boolean ) {
+  const {name, package: packagePath} = packageReference;
 
   switch(name) {
     case 'BP_WorkBenchComponent_C':
@@ -115,11 +90,98 @@ export async function resolveSlugFromPackageReference(packageReference: packageR
       return 'building-workshop'
   }
 
-  // const schematicEntriesRaw = (await pakFile.getFiles(schematicFiles)).filter(item => {
-  //   return item instanceof UObject;
-  // }) as UObject[];
+  const possibleFilePath = [packagePath, name].join('/') + '.uasset';
+
+  if (pakFile.entries.has(possibleFilePath)) {
+    const referenceFile = (await pakFile.getFiles([possibleFilePath]))[0];
+
+    if (referenceFile.specialTypes.has('Texture2D')) {
+      return `image-${toKebabCase(name)}`
+    }
+
+    const resolvedExports = await resolveExports(pakFile, referenceFile);
+    const mainClass = await findMainClass(resolvedExports);
+
+    if (mainClass?.exportTypes && schematicClasses.has(mainClass.exportTypes)) {
+      const schematicName = name.match(/^(Schematic_|SC_)?(.*?)(_C)?$/)![2];
+      return `schematic-${toKebabCase(schematicName)}`;
+    }
+
+    if (mainClass?.exportTypes && recipeClasses.has(mainClass.exportTypes)) {
+      const recipeName = name.match(/^Recipe_(.*?)(_C)?$/)![1];
+      return `recipe-${toKebabCase(recipeName)}`;
+    }
+
+    if (mainClass?.exportTypes && itemClasses.has(mainClass.exportTypes)) {
+      const itemName = name.match(/^(BP_|Desc_)(.*?)(_C)?$/)![2];
+      return `item-${toKebabCase(itemName)}`;
+    }
+    if (mainClass?.exportTypes && buildingClasses.has(mainClass.exportTypes)) {
+      const buildingName = name.match(/^Build_(.*?)(_C)?$/)![1];
+      return `building-${toKebabCase(buildingName)}`;
+    }
+  }
+
+
+  //
+  //
+  // if (/^FactoryGame\/Content\/FactoryGame\/Buildable/.test(packagePath)
+  //  ||/^FactoryGame\/Content\/FactoryGame\/Events\/.*\/Buildings\//.test(packagePath)) {
+  //   if (/^Build_(.*)(_C)?$/.test(name)) {
+  //     const buildingName = name.match(/^Build_(.*?)(_C)?$/)![1];
+  //     return `building-${toKebabCase(buildingName)}`;
+  //   } else if (/^Desc_(.*)(_C)?$/.test(name)) {
+  //     const buildingName = name.match(/^Desc_(.*?)(_C)?$/)![1];
+  //     return `item-${toKebabCase(buildingName)}`;
+  //   }
+  // }
+  //
+  // // It's a resource aka item
+  // if (/^FactoryGame\/Content\/FactoryGame\/Resource/.test(packagePath)
+  //   || /^FactoryGame\/Content\/FactoryGame\/.*\/Parts/.test(packagePath)) {
+  //   if (/^Desc_(.*)(_C)?$/.test(name)) {
+  //     const itemName = name.match(/^Desc_(.*?)(_C)?$/)![1];
+  //     return `item-${toKebabCase(itemName)}`;
+  //   } else if (/^BP_(.*)(_C)?$/.test(name)) {
+  //     const itemName = name.match(/^BP_(.*?)(_C)?$/)![1];
+  //     return `item-${toKebabCase(itemName)}`;
+  //   }
+  // }
+  //
+  // // It's an equipment aka item
+  // if (/^FactoryGame\/Content\/FactoryGame\/Equipment/.test(packagePath)
+  // ) {
+  //   if (/^Desc_(.*)(_C)?$/.test(name)) {
+  //     const itemName = name.match(/^Desc_(.*?)(_C)?$/)![1];
+  //     return `item-${toKebabCase(itemName)}`;
+  //   } else if (/^BP_(.*)(_C)?$/.test(name)) {
+  //     const itemName = name.match(/^BP_(.*?)(_C)?$/)![1];
+  //     return `item-${toKebabCase(itemName)}`;
+  //   }
+  // }
+  //
+  // // It's a recipe
+  // if (/^FactoryGame\/Content\/FactoryGame\/Recipes/.test(packagePath)
+  // || /^FactoryGame\/Content\/FactoryGame\/Events/.test(packagePath)) {
+  //   if (/^Recipe_(.*)(_C)?$/.test(name)) {
+  //     const recipeName = name.match(/^Recipe_(.*?)(_C)?$/)![1];
+  //     return `recipe-${toKebabCase(recipeName)}`;
+  //   }
+  // }
+  //
+  // // It's a schematic
+  // if (/^FactoryGame\/Content\/FactoryGame\/Schematics/.test(packagePath) ||
+  //   /^FactoryGame\/Content\/FactoryGame\/Events/.test(packagePath)) {
+  //   if (/^(Schematic_|SC_)?(.*)(_C)?$/.test(name)) {
+  //     const recipeName = name.match(/^(Schematic_|SC_)?(.*?)(_C)?$/)![2];
+  //     return `schematic-${toKebabCase(recipeName)}`;
+  //   }
+  // }
+
 
   if (createBackupSlug) {
+
+
     const pathParts = ['slug::nonstandard'];
     const namePart = name.replace(/_C$/, '').replace(/_/g, '-');
     const packagePathString = packagePath.replace('FactoryGame/Content/FactoryGame/', '').replace(/[\/_]/g, "-");

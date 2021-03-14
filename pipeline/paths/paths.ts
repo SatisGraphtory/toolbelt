@@ -24,4 +24,6 @@ export namespace dataWarehouse {
   export const root = path.join(engineeringRoot, '.DataWarehouse');
   export const supplimentary = path.join(root, 'supplimentary');
   export const main = path.join(root, 'main');
+  export const enums = path.join(root, 'enums');
+  export const images = path.join(root, 'images');
 }

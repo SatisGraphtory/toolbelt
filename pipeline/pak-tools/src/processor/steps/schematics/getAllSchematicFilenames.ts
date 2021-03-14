@@ -5,6 +5,10 @@ async function getAllSchematicFilenames(pakEntries: string[]) {
       const fileNameList = file.split('.');
       fileNameList.pop();
       schematicFiles.add(fileNameList.join('.'));
+    } else if (file.match(/\/Schematic_.*\.uexp/g)) {
+      const fileNameList = file.split('.');
+      fileNameList.pop();
+      schematicFiles.add(fileNameList.join('.'));
     }
   }
 

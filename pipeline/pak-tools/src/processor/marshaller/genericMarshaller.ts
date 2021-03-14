@@ -5,6 +5,7 @@ import {findAdditionalClasses, findMainClass, resolveExports} from "../resolvers
 import {resolveSlugFromPath} from "../resolvers/resolveSlugs";
 import {getJsonForObject} from "../loader/jsonLoader";
 import consoleInspect from "../../util/consoleInspect";
+import {guessSubclassesFromJsonClassName} from "../steps/json/guessSubclassesFromJsonClassName";
 
 const objectCache = new Map<string, any>();
 const loadedNonMainClasses = new Map<string, boolean>();
@@ -31,7 +32,7 @@ async function marshallObject<T>(pakFile: PakFile, uObject: UObject,
   if (mainClass?.exportTypes === mainClassToFind) {
     const toReturn =  {
       type: mainClass.exportTypes,
-      name: uObject.uasset.filename,
+      filename: uObject.uasset.filename,
       slug: await resolveSlugFromPath(uObject.uasset.filename, pakFile),
       object: await uObjectMarshaller.marshalFromPropertyList<T>(
         mainClass.propertyList, baseClass, docEntry, true)
@@ -75,65 +76,80 @@ function findActualObjectName(docObject: any, keyToSearch: string) {
   return null;
 }
 
-export async function marshallGeneric<T>(pakFile: PakFile, pakFiles: Set<string>,
-                                      docObject: Record<string, Record<string, Record<string, any>>>,
-                                         docObjectClass: string, unrealClassName: string,
-                                         searchNonMainClasses = false,
-                                         limitToProvidedDocs = false) {
+export async function marshallSubclassGeneric<T>(pakFile: PakFile, pakFiles: Set<string>,
+                                                 docObject: Record<string, Record<string, Record<string, any>>>,
+                                                 unrealClassNameInput: string,
+                                                 searchNonMainClasses = false,
+                                                 limitToProvidedDocs = false) {
 
-  const genericMarshaller = new Marshaller(pakFile);
-
-  // Only use UObjects that aren't UTexture2D.
   const uObjectEntries = await pakFile.getFiles([...pakFiles])
 
-  const providedObjects = docObjectClass ? docObject[docObjectClass] : {};
+  const classes = new Set(guessSubclassesFromJsonClassName(unrealClassNameInput));
 
   const objectMap = new Map<string, T[]>();
-  const slugMap = new Map<string, string>();
-
-  const objectList = [] as T[];
-
+  const slugToFileMap = new Map<string, string>();
+  const slugToClassMap = new Map<string, string>();
   const classMap = new Map<string, Set<string>>();
 
-  for (const objectEntry of uObjectEntries) {
-    const name = objectEntry.uasset.filename.match(/^.*\/([A-Za-z_0-9\-]+)\.uasset/)![1];
-    const correspondingDocsEntry = findActualObjectName(providedObjects, name + "_C")|| {};
+  const allDependencies = new Set<string>();
 
-    if (limitToProvidedDocs && Object.keys(correspondingDocsEntry).length === 0) {
-      continue;
+  for (const unrealClassName of classes) {
+    const docObjectClass = unrealClassName.startsWith('A')
+      ? unrealClassName.replace(/^A/, '')
+      : unrealClassName.replace(/^U/, '')
+
+    const genericMarshaller = new Marshaller(pakFile);
+
+    const providedObjects = docObjectClass ? docObject[docObjectClass] : {};
+
+    const objectList = [] as T[];
+
+    for (const objectEntry of uObjectEntries) {
+      const name = objectEntry.uasset.filename.match(/^.*\/([A-Za-z_0-9\-]+)\.uasset/)![1];
+      const correspondingDocsEntry = findActualObjectName(providedObjects, name + "_C")|| {};
+
+      if (limitToProvidedDocs && Object.keys(correspondingDocsEntry).length === 0) {
+        continue;
+      }
+
+      const marshalledObjects = await marshallObject<T>(
+        pakFile, objectEntry,
+        correspondingDocsEntry,
+        genericMarshaller, unrealClassName, searchNonMainClasses, docObjectClass);
+
+      for (const obj of marshalledObjects.objects) {
+        if (!objectMap.get(obj.slug)) {
+          objectMap.set(obj.slug, []);
+          slugToFileMap.set(obj.slug, obj.filename)
+        }
+
+        objectMap.get(obj.slug)!.push(obj.object);
+        objectList.push(obj.object);
+
+        if (marshalledObjects.mainClassType) {
+          slugToClassMap.set(obj.slug, marshalledObjects.mainClassType)
+          if (!classMap.get(marshalledObjects.mainClassType)) {
+            classMap.set(marshalledObjects.mainClassType, new Set<string>());
+          }
+          classMap.get(marshalledObjects.mainClassType)!.add(obj.slug);
+        }
+      }
     }
 
-    const marshalledObjects = await marshallObject<T>(
-      pakFile, objectEntry,
-      correspondingDocsEntry,
-      genericMarshaller, unrealClassName, searchNonMainClasses, docObjectClass);
+    genericMarshaller.determineAndAddMissingDependencies(objectList)
 
-    for (const obj of marshalledObjects.objects) {
-
-      if (!objectMap.get(obj.name)) {
-        objectMap.set(obj.name, []);
-        slugMap.set(obj.name, obj.slug)
-      }
-      objectMap.get(obj.name)!.push(obj.object);
-      objectList.push(obj.object);
-
-      if (marshalledObjects.mainClassType) {
-        if (!classMap.get(marshalledObjects.mainClassType)) {
-          classMap.set(marshalledObjects.mainClassType, new Set<string>());
-        }
-        classMap.get(marshalledObjects.mainClassType)!.add(obj.name);
-      }
+    for (const foundDependency of genericMarshaller.getDependencies().filter((dep) => {
+      return !pakFiles.has(dep);
+    })) {
+      allDependencies.add(foundDependency)
     }
   }
 
-  genericMarshaller.determineAndAddMissingDependencies(objectList)
-
   return {
     objectMap,
-    slugMap,
+    slugToFileMap,
+    slugToClassMap,
     classToFilenameMap: classMap,
-    dependencies: genericMarshaller.getDependencies().filter((dep) => {
-      return !pakFiles.has(dep);
-    })
+    dependencies: [...allDependencies]
   }
 }

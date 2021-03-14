@@ -47,8 +47,14 @@ export class Marshaller {
     if (this.missingDependencies.has(dependencyKey)) {
       if (!Marshaller.defaultsAreEqual(this.missingDependencies.get(dependencyKey),  dependencyValue)) {
         if (typeof dependencyValue !== typeof this.missingDependencies.get(dependencyKey)) {
-          console.log(dependencyValue, this.missingDependencies.get(dependencyKey))
-          throw new Error("Mismatching dep types!");
+          if (dependencyValue === 'None' || this.missingDependencies.get(dependencyKey) === 'None') {
+              this.blacklistedMissingDependencies.add(dependencyKey);
+              this.missingDependencies.set(dependencyKey, 'None');
+              return;
+            } else {
+              console.log(dependencyKey, dependencyValue, this.missingDependencies.get(dependencyKey));
+              throw new Error("Mismatched dep types!")
+            }
         }
 
         this.blacklistedMissingDependencies.add(dependencyKey);
@@ -206,7 +212,6 @@ export class Marshaller {
       objectName: classNameParts.join('.')
     });
   }
-
 
 
   private async marshalStructProperty(property: Shape<typeof FPropertyTag>, docObject: Record<string, any>) {
