@@ -170,70 +170,70 @@ async function main() {
   }
 
 
-  // // ** Get and write out buildings.json **/
-  // const buildableFiles = await getAllBuildableFilenames([...fileNameList]);
-  //
-  // const {objectMap: buildableMap, dependencies: buildingDependencies, slugToClassMap: buildingSlugMap, slugToFileMap: buildingSlugToFileMap } = await marshallSubclassGeneric<any>(pakFile,
-  //   buildableFiles, docObjects, "AFGBuildable")
-  //
-  // const buildingMapPath = path.join(paths.dataWarehouse.main, 'Buildings.json');
-  // fs.writeFileSync(buildingMapPath, JSON.stringify(buildableMap, replacer, 2))
-  //
-  // const buildingClassMapPath = path.join(paths.dataWarehouse.main, 'BuildingClasses.json');
-  // fs.writeFileSync(buildingClassMapPath, JSON.stringify(buildingSlugMap, replacer, 2))
-  //
-  //
-  //
-  // const verifiedBuildableFiles = new Set([...buildingSlugToFileMap.values()]);
-  //
-  // const {objectMap: pipeMap, slugToClassMap: pipeSlugToClassMap,
-  //   dependencies: pipeDependencies } = await marshallSubclassGeneric<any>(pakFile,
-  //   verifiedBuildableFiles,
-  //   docObjects,
-  //   "UFGPipeConnectionComponent", true)
-  //
-  // const {objectMap: beltMap, slugToClassMap: beltSlugToClassMap,
-  //   dependencies: beltDependencies } = await marshallSubclassGeneric<any>(pakFile,
-  //   verifiedBuildableFiles,
-  //   docObjects,
-  //   "UFGFactoryConnectionComponent", true)
-  //
-  // const connectionMapper = new ConnectionMapper();
-  //
-  // // We need to add a custom handler to conveyor belts because they both report as 'input'
-  // connectionMapper.addCustomClassHandler('FGBuildableConveyorBelt', () => {
-  //   return [
-  //     {
-  //       mDirection: EFactoryConnectionDirection.FCD_INPUT
-  //     },
-  //     {
-  //       mDirection: EFactoryConnectionDirection.FCD_OUTPUT
-  //     }
-  //   ]
-  // })
-  //
-  // // We'll need to add gas and heat too
-  // connectionMapper.addConnectionMap(beltSlugToClassMap, beltMap, "mDirection",
-  //   EResourceForm.RF_SOLID, EResourceForm, EFactoryConnectionDirection);
-  // connectionMapper.addConnectionMap(pipeSlugToClassMap, pipeMap, "mPipeConnectionType",
-  //   EResourceForm.RF_LIQUID, EResourceForm, EPipeConnectionType);
-  //
-  // /** Write out connections.json  **/
-  // const connectionMapPath = path.join(paths.dataWarehouse.main, 'Connections.json');
-  //
-  // fs.mkdirSync(paths.dataWarehouse.main, { recursive: true });
-  //
-  // fs.writeFileSync(connectionMapPath, connectionMapper.getFinalResourceMapString())
-  //
-  //
-  // /** Write out enums used for serialization.json  **/
-  // const enumsPath = path.join(paths.dataWarehouse.enums, 'dataEnums.ts');
-  //
-  // fs.mkdirSync(paths.dataWarehouse.enums, { recursive: true });
-  // const {text: enumText, numNew } = createEnumRevision();
-  // if (numNew) {
-  //   fs.writeFileSync(enumsPath, enumText);
-  // }
+  // ** Get and write out buildings.json **/
+  const buildableFiles = await getAllBuildableFilenames([...fileNameList]);
+
+  const {objectMap: buildableMap, dependencies: buildingDependencies, slugToClassMap: buildingSlugMap, slugToFileMap: buildingSlugToFileMap } = await marshallSubclassGeneric<any>(pakFile,
+    buildableFiles, docObjects, "AFGBuildable")
+
+  const buildingMapPath = path.join(paths.dataWarehouse.main, 'Buildings.json');
+  fs.writeFileSync(buildingMapPath, JSON.stringify(buildableMap, replacer, 2))
+
+  const buildingClassMapPath = path.join(paths.dataWarehouse.main, 'BuildingClasses.json');
+  fs.writeFileSync(buildingClassMapPath, JSON.stringify(buildingSlugMap, replacer, 2))
+
+
+
+  const verifiedBuildableFiles = new Set([...buildingSlugToFileMap.values()]);
+
+  const {objectMap: pipeMap, slugToClassMap: pipeSlugToClassMap,
+    dependencies: pipeDependencies } = await marshallSubclassGeneric<any>(pakFile,
+    verifiedBuildableFiles,
+    docObjects,
+    "UFGPipeConnectionComponent", true)
+
+  const {objectMap: beltMap, slugToClassMap: beltSlugToClassMap,
+    dependencies: beltDependencies } = await marshallSubclassGeneric<any>(pakFile,
+    verifiedBuildableFiles,
+    docObjects,
+    "UFGFactoryConnectionComponent", true)
+
+  const connectionMapper = new ConnectionMapper();
+
+  // We need to add a custom handler to conveyor belts because they both report as 'input'
+  connectionMapper.addCustomClassHandler('FGBuildableConveyorBelt', () => {
+    return [
+      {
+        mDirection: EFactoryConnectionDirection.FCD_INPUT
+      },
+      {
+        mDirection: EFactoryConnectionDirection.FCD_OUTPUT
+      }
+    ]
+  })
+
+  // We'll need to add gas and heat too
+  connectionMapper.addConnectionMap(beltSlugToClassMap, beltMap, "mDirection",
+    EResourceForm.RF_SOLID, EResourceForm, EFactoryConnectionDirection);
+  connectionMapper.addConnectionMap(pipeSlugToClassMap, pipeMap, "mPipeConnectionType",
+    EResourceForm.RF_LIQUID, EResourceForm, EPipeConnectionType);
+
+  /** Write out connections.json  **/
+  const connectionMapPath = path.join(paths.dataWarehouse.main, 'Connections.json');
+
+  fs.mkdirSync(paths.dataWarehouse.main, { recursive: true });
+
+  fs.writeFileSync(connectionMapPath, connectionMapper.getFinalResourceMapString())
+
+
+  /** Write out enums used for serialization.json  **/
+  const enumsPath = path.join(paths.dataWarehouse.enums, 'dataEnums.ts');
+
+  fs.mkdirSync(paths.dataWarehouse.enums, { recursive: true });
+  const {text: enumText, numNew } = createEnumRevision();
+  if (numNew) {
+    fs.writeFileSync(enumsPath, enumText);
+  }
 }
 
 
