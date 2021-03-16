@@ -122,7 +122,9 @@ class Listener implements SatisfactoryHeaderParserListener {
       // UMETA(DisplayName=Private) vs UMETA(DisplayName="Private")
       displayName = Object.keys(displayName)[0];
     }
-    if (Object.keys(meta).length) {
+
+    // Hack because sometimes we're not actually inside an enum
+    if (this._currentEntry?.kind === 'enum') {
       this._currentEnum().entries.push({
         name: context.identifier().text,
         displayName,
