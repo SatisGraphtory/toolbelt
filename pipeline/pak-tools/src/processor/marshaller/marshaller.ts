@@ -264,8 +264,6 @@ export class Marshaller {
   // InnerType may be redundant because we pass in some sketchy stuff
   private async marshalPropertyByPakType(property: Shape<typeof FPropertyTag>,
                                          docObject: Record<string, any>, overriddenPropertyType = property?.propertyType) {
-
-    console.log("DFKMDFSKMLFSKMLFSKMDFSDF", property)
     if (!property) return null;
     switch (overriddenPropertyType) {
       case 'EnumProperty':
