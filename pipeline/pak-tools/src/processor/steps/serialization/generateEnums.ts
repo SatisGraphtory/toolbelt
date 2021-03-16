@@ -30,11 +30,11 @@ const generateEnums = (
   for (const [name, value] of oldEnumsMap) {
     if (newNamesSet.has(name)) {
       newNamesSet.delete(name);
-      maxValue = Math.max(maxValue, value);
       lineEntries.push(formatEntry(name, value, false));
     } else {
       lineEntries.push(formatEntry(name, value, true));
     }
+    maxValue = Math.max(maxValue, value);
   }
 
   maxValue++;

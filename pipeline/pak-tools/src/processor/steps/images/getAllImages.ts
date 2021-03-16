@@ -13,6 +13,8 @@ export async function getAllImages(objectFiles: UObject[]) {
 
   let i = 0;
 
+  const existingImageMap = new Map<string, string>();
+
   for (const file of objectFiles) {
     let actualImageName = undefined;
 
@@ -39,6 +41,12 @@ export async function getAllImages(objectFiles: UObject[]) {
 
     if (/^[0-9]/.test(actualImageName)) {
       actualImageName = 'Image_' + actualImageName
+    }
+
+    if (existingImageMap.has(actualImageName.toLowerCase())) {
+      actualImageName = existingImageMap.get(actualImageName.toLowerCase())!
+    } else {
+      existingImageMap.set(actualImageName.toLowerCase(), actualImageName);
     }
 
     let slugName = file.uasset.filename;

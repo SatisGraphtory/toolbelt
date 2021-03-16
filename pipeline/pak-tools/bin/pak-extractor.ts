@@ -34,6 +34,7 @@ import ConnectionMapper from "../src/processor/steps/ConnectionMapper";
 import createEnumRevision from "../src/processor/steps/serialization/generateEnums";
 import {getAllImages} from "../src/processor/steps/images/getAllImages";
 import PakTranslator from "../src/processor/steps/localize/PakTranslator";
+import generateClassMap from "../src/processor/steps/classMap/generateClassMap";
 
 const DEFAULT_INSTALL_DIR = '/mnt/a/Games/Epic/SatisfactoryExperimental';
 
@@ -115,6 +116,36 @@ async function main() {
 
   fs.writeFileSync(pakManifestPath, JSON.stringify([...pakFile.entries.keys()], replacer, 2))
 
+
+
+
+
+
+
+
+  // ** Get and write out buildings.json **/
+  const buildableFiles = await getAllBuildableFilenames([...fileNameList]);
+
+  const {collapsedObjectMap: buildableMap, slugToClassMap: buildingSlugMap, slugToFileMap: buildingSlugToFileMap } = await marshallSubclassGeneric<any>(pakFile,
+    buildableFiles, docObjects, "AFGBuildable", false, false, true)
+
+  const buildingClassMapMapPath = path.join(paths.dataWarehouse.main, 'BuildingClassMap.json');
+  fs.writeFileSync(buildingClassMapMapPath, JSON.stringify(generateClassMap('AFGBuildable', new Set([...buildingSlugMap.values()])), replacer, 2))
+
+  const buildingMapPath = path.join(paths.dataWarehouse.main, 'Buildings.json');
+  fs.writeFileSync(buildingMapPath, JSON.stringify(buildableMap, replacer, 2))
+
+  const buildingClassMapPath = path.join(paths.dataWarehouse.main, 'BuildingClasses.json');
+  fs.writeFileSync(buildingClassMapPath, JSON.stringify(buildingSlugMap, replacer, 2))
+
+
+
+
+
+
+
+
+
   // This is the section handling schematics
   const schematicFiles = await getAllSchematicFilenames(fileNameList);
 
@@ -170,19 +201,6 @@ async function main() {
     i++;
   }
 
-  // ** Get and write out buildings.json **/
-  const buildableFiles = await getAllBuildableFilenames([...fileNameList]);
-
-  const {collapsedObjectMap: buildableMap, slugToClassMap: buildingSlugMap, slugToFileMap: buildingSlugToFileMap } = await marshallSubclassGeneric<any>(pakFile,
-    buildableFiles, docObjects, "AFGBuildable", false, false, true)
-
-  const buildingMapPath = path.join(paths.dataWarehouse.main, 'Buildings.json');
-  fs.writeFileSync(buildingMapPath, JSON.stringify(buildableMap, replacer, 2))
-
-  const buildingClassMapPath = path.join(paths.dataWarehouse.main, 'BuildingClasses.json');
-  fs.writeFileSync(buildingClassMapPath, JSON.stringify(buildingSlugMap, replacer, 2))
-
-
   const pakTranslator = new PakTranslator();
 
   pakTranslator.addDefaultSource(buildableMap, ((mapEntry: any) => {
@@ -210,7 +228,6 @@ async function main() {
   fs.mkdirSync(paths.dataWarehouse.translations, { recursive: true });
 
   fs.writeFileSync(translationPath, JSON.stringify(pakTranslator.translationMap, replacer, 2))
-
 
   const verifiedBuildableFiles = new Set([...buildingSlugToFileMap.values()]);
 
