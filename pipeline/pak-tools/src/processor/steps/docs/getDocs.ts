@@ -64,7 +64,7 @@ async function resolvePropertyValue(propertyValue: any, pakFile: PakFile, parsed
   } else if (typeof propertyValue === 'object') {
     const resultObject = new Map<string, any>();
     for (const [key, entry] of Object.entries(propertyValue)) {
-      resultObject.set(key, await resolvePropertyValue(entry, pakFile));
+      resultObject.set(key, await resolvePropertyValue(entry, pakFile, parsedRef));
     }
 
     return resultObject;
@@ -83,13 +83,18 @@ async function resolvePropertyValue(propertyValue: any, pakFile: PakFile, parsed
       // Has  an enum assigned to it
       // return enumMap.get(propertyValue)!
       // Return the string value of the enum for now
-      if (!parsedRef) throw new Error("There's no parsedRef to resolve this enum!");
-      const enumType = parsedRef['$ref'].replace(/#\/definitions\//, '');
-      const enumMap = (SatisfactoryEnums as any)[enumType];
-      if (enumMap[propertyValue] === undefined) {
-        throw new Error("Undefined enum found: " + propertyValue);
+      if (parsedRef) {
+        const enumType = parsedRef['$ref'].replace(/#\/definitions\//, '');
+        const checkedEnumMap = (SatisfactoryEnums as any)[enumType];
+        if (checkedEnumMap === undefined || checkedEnumMap[propertyValue] === undefined) {
+          // Sadness
+          // throw new Error("Undefined enum found: " + propertyValue);
+          return enumMap.get(propertyValue)!;
+        }
+        return checkedEnumMap[propertyValue];
       }
-      return enumMap[propertyValue];
+
+      return enumMap.get(propertyValue)!;
     } else if (/^[\w\s]+/.test(propertyValue)) {
       // Simple string property value
       if (propertyValue.startsWith("BlueprintGenerated")) {
@@ -114,8 +119,10 @@ async function resolvePropertyValue(propertyValue: any, pakFile: PakFile, parsed
         throw new Error("Could not tokenize remaining items: " + tokenizedInput)
       }
     } else {
-      console.log(propertyValue);
-      throw new Error("Unknown property type");
+      console.log("It's a string literal")
+      return propertyValue
+      // console.log(propertyValue);
+      // throw new Error("Unknown property type");
     }
   } else {
     console.log(typeof propertyValue, propertyValue)
@@ -409,6 +416,9 @@ async function getDocs(pakFile: PakFile, docPath = paths.sourceData.docs,) {
 
         if (jsonModel.properties[propertyName] &&
           jsonModel.properties[propertyName]['$ref']) {
+          parsedRef = jsonModel.properties[propertyName];
+        } else if (jsonModel.properties[propertyName]?.items &&
+          jsonModel.properties[propertyName].items['$ref']) {
           parsedRef = jsonModel.properties[propertyName];
         }
 

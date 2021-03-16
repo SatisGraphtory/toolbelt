@@ -3,7 +3,7 @@ import {Reader} from "../../../readers/Reader";
 import {FGuid} from "./UScriptStrutTypes/FGuid";
 import {Shape} from "../../../util/parsers";
 import {UAsset} from "../../pakfile/UAsset";
-import {Int16, Int32, Int64, Int8, UInt16, UInt32, UInt64} from "../../primitive/integers";
+import {Int16, Int32, Int64, Int8, UInt16, UInt32, UInt64, UInt8} from "../../primitive/integers";
 import {bigintToNumber} from "../../../util/numeric";
 import {Double, Float} from "../../primitive/decimals";
 import {FPackageIndex} from "../file/FPackageIndex";
@@ -83,6 +83,20 @@ export function UScriptStruct(
 
     if (tagMetaData) {
       switch (tagMetaData.structName) {
+
+
+        // https://github.com/iAmAsval/FModel/blob/841e76d2d7fedffd89ce11fcb1d924a3eaeac4ca/FModel/PakReader/Parsers/PropertyTagData/ByteProperty.cs
+        case "ByteProperty":
+          tag = await reader.read(UInt32);
+          break;
+        case "BoolProperty":
+          tag = await reader.read(UInt8) !== 0;
+          break;
+        case "ArrayProperty":
+        case "AssetObjectProperty":
+        case "MapProperty":
+        case "SetProperty":
+          throw new Error("Unhandled UScriptStruct Properties :(")
         case 'Int8Property':
           tag = await reader.read(Int8);
           break;
@@ -200,7 +214,6 @@ export function UScriptStruct(
         case 'PerPlatformInt':
           tag = await reader.read(FPerPlatformInt);
           break;
-
 
         // These are RE'd classes.
         case 'ScalarMaterialInput':

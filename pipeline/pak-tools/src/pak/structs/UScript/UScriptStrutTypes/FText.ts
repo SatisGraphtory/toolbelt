@@ -4,6 +4,9 @@ import {Int32, Int64, UInt32, UInt8} from "../../../primitive/integers";
 import {Reader} from "../../../../readers/Reader";
 import {FString} from "../../../containers/FString";
 import {FFormatArgumentValue} from "./FFormatArgumentValue";
+import {TArray} from "../../../containers/TArray";
+import {FFormatArgumentData} from "./FFormatArgumentData";
+import {FDateTime} from "./FDateTime";
 
 enum ETextHistoryType {
   None = 255,
@@ -51,9 +54,7 @@ export function FText(names: NameMap) {
         };
       case ETextHistoryType.AsDateTime:
         return {
-          SourceDateTime: {
-            Ticks: await reader.read(Int64),
-          },
+          SourceDateTime: await reader.read(FDateTime),
           DateStyle: await reader.read(UInt8),
           TimeStyle: await reader.read(UInt8),
           TimeZone: await reader.read(FString),
@@ -82,9 +83,30 @@ export function FText(names: NameMap) {
           CultureInvariantString: await reader.read(Int32) !== 0 ? await reader.read(FString) : null
         };
       case ETextHistoryType.ArgumentFormat:
+        return {
+          FormatText: await reader.read(FText(names)),
+          Arguments: await reader.read(TArray(FFormatArgumentData(names))),
+        }
       case ETextHistoryType.AsDate:
+        return {
+          SourceDateTime: await reader.read(FDateTime),
+          DateStyle: await reader.read(UInt8),
+          TimeStyle: await reader.read(UInt8),
+          TimeZone: await reader.read(FString),
+          CultureName : await reader.read(FString),
+        };
       case ETextHistoryType.AsTime:
+        return {
+          SourceDateTime: await reader.read(FDateTime),
+          TimeStyle: await reader.read(UInt8),
+          TimeZone: await reader.read(FString),
+          CultureName : await reader.read(FString),
+        };
       case ETextHistoryType.Transform:
+        return {
+          SourceText: await reader.read(FText(names)),
+          TransformType: await reader.read(UInt8)
+        }
       case ETextHistoryType.TextGenerator:
       default:
         throw new Error('Possibly history type ' + historyType + ' not supported');

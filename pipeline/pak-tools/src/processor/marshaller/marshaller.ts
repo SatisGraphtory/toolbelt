@@ -51,6 +51,11 @@ export class Marshaller {
             this.missingDependencies.set(dependencyKey, 'None');
             return;
           } else {
+            if (typeof dependencyValue === 'object' && typeof this.missingDependencies.get(dependencyKey) === 'string') {
+              this.blacklistedMissingDependencies.add(dependencyKey);
+              this.missingDependencies.delete(dependencyKey);
+              return;
+            }
             console.log(dependencyKey, dependencyValue, this.missingDependencies.get(dependencyKey));
             throw new Error("Mismatched dep types!")
           }
@@ -165,6 +170,7 @@ export class Marshaller {
     }
 
     if (topLevel) {
+
       for (const missingKey of completeKeySet) {
         if (docObject[missingKey]) {
           (marshalledObject as any)[missingKey] = docObject[missingKey];
@@ -258,6 +264,8 @@ export class Marshaller {
   // InnerType may be redundant because we pass in some sketchy stuff
   private async marshalPropertyByPakType(property: Shape<typeof FPropertyTag>,
                                          docObject: Record<string, any>, overriddenPropertyType = property?.propertyType) {
+
+    console.log("DFKMDFSKMLFSKMLFSKMDFSDF", property)
     if (!property) return null;
     switch (overriddenPropertyType) {
       case 'EnumProperty':
@@ -290,8 +298,11 @@ export class Marshaller {
 
   async marshalSoftObjectProperty(property: Shape<typeof FPropertyTag>) {
     if (property?.tag?.subpath) {
-      console.log(property);
       throw new Error("Not enough data");
+    }
+
+    if (property?.tag?.assetPathName === 'None') {
+      return null
     }
 
     if (property?.tag?.assetPathName.startsWith('/Script')) {

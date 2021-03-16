@@ -4,7 +4,7 @@ import {Int64, UInt64, UInt8} from "../../../primitive/integers";
 import {Reader} from "../../../../readers/Reader";
 import {NameMap} from "../FName";
 
-enum EFormatArgumentType {
+export enum EFormatArgumentType {
   Int,
   UInt,
   Float,
@@ -16,7 +16,7 @@ enum EFormatArgumentType {
 
 export function FFormatArgumentValue(names: NameMap) {
   return async function FFormatArgumentValueParser(reader: Reader) {
-    const Type = await reader.read(UInt8);
+    const Type = await reader.read(UInt8) as EFormatArgumentType;
     switch (Type) {
       case EFormatArgumentType.Text:
         return await reader.read(FText(names));

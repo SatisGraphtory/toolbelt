@@ -17,7 +17,6 @@ import getDocs from "../src/processor/steps/docs/getDocs";
 import getAllRecipeFilenames from "../src/processor/steps/recipes/getAllRecipeFilenames";
 import path from "path";
 
-// import RecipeJson from "../../../.DataLanding/objects/recipes";
 import {
   EFactoryConnectionDirection,
   EPipeConnectionType,
@@ -115,9 +114,6 @@ async function main() {
   const pakManifestPath = path.join(paths.dataWarehouse.supplimentary, 'PakEntries.json');
 
   fs.writeFileSync(pakManifestPath, JSON.stringify([...pakFile.entries.keys()], replacer, 2))
-
-
-
 
 
 
