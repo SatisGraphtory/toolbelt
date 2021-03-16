@@ -58,6 +58,7 @@ function parseAll(sourceDir = paths.sourceData.headers, destDir = paths.dataLand
 
 function parse(header: string, sourceDir: string) {
   process.stderr.write(`\u001b[2Kparsing: ${path.relative(sourceDir, header)}\r`);
+  process.stderr.write(`parsing: ${path.relative(sourceDir, header)}\n`);
   const contents = fs.readFileSync(header, 'utf-8');
 
   if (process.env.DEBUG === 'tokens') {
@@ -78,7 +79,8 @@ function emitCategory(context: EmitContext, category: EmittableCategory) {
 
   const entries = context.entriesInCategory(category);
   for (const entry of entries) {
-    process.stderr.write(`\u001b[2Kemitting: ${entry}\r`);
+    // process.stderr.write(`\u001b[2Kemitting: ${entry}\r`);
+    process.stderr.write(`emitting: ${entry}\n`);
     const content = context.emit(entry);
     const destination = context.pathTo(entry) || '';
     fs.writeFileSync(destination, content);

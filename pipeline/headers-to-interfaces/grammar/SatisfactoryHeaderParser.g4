@@ -19,6 +19,7 @@ element
   | typedef
   | usingNamespace
   | globalVariableDeclaration
+  | genericEnumDeclaration
   | SEMICOLON
   ;
 
@@ -47,6 +48,7 @@ stringLiteral
 numericLiteral
   : INTEGER_LITERAL
   | FLOAT_LITERAL
+  | HEX_LITERAL
   ;
 
 booleanLiteral
@@ -55,9 +57,8 @@ booleanLiteral
   ;
 
 // Types
-
 typeDeclaration
-  : typeModifier* identifier templateType? typeReferenceType? CONSTEXPR?
+  : typeModifier* identifier typeModifier? templateType? typeReferenceType? CONSTEXPR?
   ;
 
 templateType
@@ -199,8 +200,9 @@ classProperty
 
 classPropertyDefaultValue
   : COLON literal
-  | EQUALS literalExpression
   | EQUALS identifier contentWithNestedParens
+  | EQUALS identifier contentWithNestedBraces
+  | EQUALS literalExpression
   ;
 
 literalExpression
@@ -241,6 +243,10 @@ nestedStruct
   ;
 
 // Enums
+
+genericEnumDeclaration
+  : ENUM OPEN_BRACE enumBody COMMA? CLOSE_BRACE SEMICOLON?
+  ;
 
 enumDeclaration
   : enumHeader OPEN_BRACE enumBody COMMA? CLOSE_BRACE SEMICOLON?
@@ -290,6 +296,7 @@ staticMethodCall
 typedef
   : TYPEDEF TYPENAME? typeDeclaration identifier SEMICOLON
   | CLASS identifier SEMICOLON
+  | STRUCT identifier SEMICOLON
   ;
 
 contentWithNestedParens

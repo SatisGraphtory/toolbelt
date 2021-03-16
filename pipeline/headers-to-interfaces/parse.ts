@@ -122,12 +122,13 @@ class Listener implements SatisfactoryHeaderParserListener {
       // UMETA(DisplayName=Private) vs UMETA(DisplayName="Private")
       displayName = Object.keys(displayName)[0];
     }
-
-    this._currentEnum().entries.push({
-      name: context.identifier().text,
-      displayName,
-      comment: this._getComment(context),
-    });
+    if (Object.keys(meta).length) {
+      this._currentEnum().entries.push({
+        name: context.identifier().text,
+        displayName,
+        comment: this._getComment(context),
+      });
+    }
   }
 
   exitEnumDeclaration() {

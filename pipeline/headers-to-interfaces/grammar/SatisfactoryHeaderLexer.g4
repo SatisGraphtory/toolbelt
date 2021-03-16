@@ -79,6 +79,7 @@ IDENTIFIER: [a-zA-Z_][a-zA-Z0-9_]*;
 STRING_LITERAL: '"' .*? '"';
 FLOAT_LITERAL: '-'? [0-9]+ '.' [0-9]* 'f'?;
 INTEGER_LITERAL: '-'? [0-9]+;
+HEX_LITERAL: '0x'[0-9A-Fa-f]+;
 
 // Blocks
 

@@ -45,6 +45,7 @@ import { NestedEnumInheritanceContext } from "./SatisfactoryHeaderParser";
 import { NestedEnumClassContext } from "./SatisfactoryHeaderParser";
 import { NestedClassContext } from "./SatisfactoryHeaderParser";
 import { NestedStructContext } from "./SatisfactoryHeaderParser";
+import { GenericEnumDeclarationContext } from "./SatisfactoryHeaderParser";
 import { EnumDeclarationContext } from "./SatisfactoryHeaderParser";
 import { EnumHeaderContext } from "./SatisfactoryHeaderParser";
 import { EnumBodyContext } from "./SatisfactoryHeaderParser";
@@ -550,6 +551,17 @@ export interface SatisfactoryHeaderParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	exitNestedStruct?: (ctx: NestedStructContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `SatisfactoryHeaderParser.genericEnumDeclaration`.
+	 * @param ctx the parse tree
+	 */
+	enterGenericEnumDeclaration?: (ctx: GenericEnumDeclarationContext) => void;
+	/**
+	 * Exit a parse tree produced by `SatisfactoryHeaderParser.genericEnumDeclaration`.
+	 * @param ctx the parse tree
+	 */
+	exitGenericEnumDeclaration?: (ctx: GenericEnumDeclarationContext) => void;
 
 	/**
 	 * Enter a parse tree produced by `SatisfactoryHeaderParser.enumDeclaration`.

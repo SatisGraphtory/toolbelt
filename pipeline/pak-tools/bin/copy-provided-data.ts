@@ -127,6 +127,8 @@ async function generateMetadataJson() {
   if (news.buildNumber !== buildNumber) {
     if (news.buildNumber < buildNumber) {
       throw new Error(`The file build number (${buildNumber}) and the news build number (${news.buildNumber}) do not match!`)
+      // news.buildNumber = buildNumber
+      // news.semanticVersion = "0.4.0.0"
     } else {
       console.warn(`The file build number (${buildNumber}) is less than the news build number (${news.buildNumber})! (But we're ignoring this!)`)
     }
