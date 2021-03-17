@@ -115,10 +115,6 @@ async function main() {
 
   fs.writeFileSync(pakManifestPath, JSON.stringify([...pakFile.entries.keys()], replacer, 2))
 
-
-
-
-
   // ** Get and write out buildings.json **/
   const buildableFiles = await getAllBuildableFilenames([...fileNameList]);
 
@@ -145,8 +141,14 @@ async function main() {
   // This is the section handling schematics
   const schematicFiles = await getAllSchematicFilenames(fileNameList);
 
-  const {collapsedObjectMap: schematicMap, dependencies: schematicDependencies } = await marshallSubclassGeneric<UFGSchematic>(pakFile,
+  const {collapsedObjectMap: schematicMap, dependencies: schematicDependencies, slugToClassMap: schematicSlugMap } = await marshallSubclassGeneric<UFGSchematic>(pakFile,
     schematicFiles, docObjects, "UFGSchematic", false, false, true)
+
+  const schematicMapPath = path.join(paths.dataWarehouse.main, 'Schematics.json');
+  fs.writeFileSync(schematicMapPath, JSON.stringify(schematicMap, replacer, 2))
+
+  const schematicClassMapPath = path.join(paths.dataWarehouse.main, 'SchematicClasses.json');
+  fs.writeFileSync(schematicClassMapPath, JSON.stringify(schematicSlugMap, replacer, 2))
 
   /** Get and write out recipes.json **/
   const recipeFiles = await getAllRecipeFilenames([...fileNameList, ...schematicDependencies]);
@@ -204,7 +206,7 @@ async function main() {
   }))
 
   pakTranslator.addDefaultSource(recipeMap, ((mapEntry: any) => {
-    if (mapEntry?.mDisplayNameOverride) {
+    if (!mapEntry?.mDisplayNameOverride) {
       const firstItemSlug = mapEntry?.mProduct[0].ItemClass.slug;
       return itemMap.get(firstItemSlug)?.mDisplayName?.sourceString
     } else {

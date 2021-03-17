@@ -39,62 +39,111 @@ export class Marshaller {
   }
 
   missingDependencies = new Map<string, any>();
-  blacklistedMissingDependencies = new Set<string>();
+  possiblyMissingDependencies = new Map<string, any>();
 
-  addMissingDependency(dependencyKey: string, dependencyValue: any) {
-    if (this.blacklistedMissingDependencies.has(dependencyKey)) return;
-    if (this.missingDependencies.has(dependencyKey)) {
-      if (!Marshaller.defaultsAreEqual(this.missingDependencies.get(dependencyKey), dependencyValue)) {
-        if (typeof dependencyValue !== typeof this.missingDependencies.get(dependencyKey)) {
-          if (dependencyValue === 'None' || this.missingDependencies.get(dependencyKey) === 'None') {
-            this.blacklistedMissingDependencies.add(dependencyKey);
-            this.missingDependencies.set(dependencyKey, 'None');
-            return;
-          } else {
-            if (typeof dependencyValue === 'object' && typeof this.missingDependencies.get(dependencyKey) === 'string') {
-              this.blacklistedMissingDependencies.add(dependencyKey);
-              this.missingDependencies.delete(dependencyKey);
-              return;
-            }
-            console.log(dependencyKey, dependencyValue, this.missingDependencies.get(dependencyKey));
-            throw new Error("Mismatched dep types!")
-          }
-        }
-
-        this.blacklistedMissingDependencies.add(dependencyKey);
-
-        if (Array.isArray(dependencyValue)) {
-          this.missingDependencies.set(dependencyKey, []);
-        } else {
-          switch (typeof dependencyValue) {
-            case 'number':
-              this.missingDependencies.set(dependencyKey, 0);
-              break;
-            case 'object':
-              this.missingDependencies.set(dependencyKey, null);
-              break;
-            case 'boolean':
-              this.missingDependencies.set(dependencyKey, false);
-              break;
-            case 'string':
-              if (dependencyValue.toLowerCase() === 'true' || dependencyValue.toLowerCase() == 'false') {
-                console.log(dependencyKey);
-                throw new Error("Found bad booleans");
-              }
-              this.missingDependencies.set(dependencyKey, null);
-              break;
-            default:
-              console.log(this.missingDependencies.get(dependencyKey))
-              console.log(dependencyValue);
-              throw new Error("Unknown dep value type " + typeof dependencyValue + " for key " + dependencyKey);
-          }
-        }
-
-        console.log(`Received conflicting defaults for key ${dependencyKey}, setting as empty instead.`);
+  reconcileMissingDependencies() {
+    for (const [key, value] of this.possiblyMissingDependencies.entries()) {
+      if (!this.missingDependencies.has(key)) {
+        this.addMissingDependency(key, value)
       }
-    } else {
-      this.missingDependencies.set(dependencyKey, dependencyValue);
     }
+  }
+
+  addMissingDependency(dependencyKey: string, dependencyValue: any, isBackupDocObjectKey: boolean = false) {
+    if (isBackupDocObjectKey) {
+      this.possiblyMissingDependencies.set(dependencyKey, dependencyValue);
+      return;
+    }
+
+    if (this.missingDependencies.has(dependencyKey)) return;
+    if (Array.isArray(dependencyValue)) {
+      this.missingDependencies.set(dependencyKey, []);
+    } else {
+      switch (typeof dependencyValue) {
+        case 'number':
+          this.missingDependencies.set(dependencyKey, 0);
+          break;
+        case 'object':
+          this.missingDependencies.set(dependencyKey, null);
+          break;
+        case 'boolean':
+          this.missingDependencies.set(dependencyKey, false);
+          break;
+        case 'string':
+          if (dependencyValue.toLowerCase() === 'true' || dependencyValue.toLowerCase() == 'false') {
+            console.log(dependencyKey);
+            throw new Error("Found bad booleans");
+          }
+          this.missingDependencies.set(dependencyKey, null);
+          break;
+        default:
+          break;
+      }
+    }
+
+
+    // if (this.missingDependencies.has(dependencyKey)) {
+    //   if (!Marshaller.defaultsAreEqual(this.missingDependencies.get(dependencyKey), dependencyValue)) {
+    //     if (typeof dependencyValue !== typeof this.missingDependencies.get(dependencyKey)) {
+    //       if (dependencyValue === 'None' || this.missingDependencies.get(dependencyKey) === 'None') {
+    //         this.blacklistedMissingDependencies.add(dependencyKey);
+    //         this.missingDependencies.set(dependencyKey, 'None');
+    //         return;
+    //       } else {
+    //         if (typeof dependencyValue === 'object' && typeof this.missingDependencies.get(dependencyKey) === 'string') {
+    //           this.blacklistedMissingDependencies.add(dependencyKey);
+    //           this.missingDependencies.delete(dependencyKey);
+    //           return;
+    //         }
+    //         console.log(dependencyKey, dependencyValue, this.missingDependencies.get(dependencyKey));
+    //         throw new Error("Mismatched dep types!")
+    //       }
+    //     }
+    //
+    //     this.blacklistedMissingDependencies.add(dependencyKey);
+    //
+    //     if (Array.isArray(dependencyValue)) {
+    //       this.missingDependencies.set(dependencyKey, []);
+    //     } else {
+    //       switch (typeof dependencyValue) {
+    //         case 'number':
+    //           this.missingDependencies.set(dependencyKey, 0);
+    //           break;
+    //         case 'object':
+    //           this.missingDependencies.set(dependencyKey, null);
+    //           break;
+    //         case 'boolean':
+    //           this.missingDependencies.set(dependencyKey, false);
+    //           break;
+    //         case 'string':
+    //           if (dependencyValue.toLowerCase() === 'true' || dependencyValue.toLowerCase() == 'false') {
+    //             console.log(dependencyKey);
+    //             throw new Error("Found bad booleans");
+    //           }
+    //           this.missingDependencies.set(dependencyKey, null);
+    //           break;
+    //         default:
+    //           console.log(this.missingDependencies.get(dependencyKey))
+    //           console.log(dependencyValue);
+    //           throw new Error("Unknown dep value type " + typeof dependencyValue + " for key " + dependencyKey);
+    //       }
+    //     }
+    //
+    //     console.log(`Received conflicting defaults for key ${dependencyKey}, setting as empty instead.`);
+    //   }
+    // } else {
+    //   switch (typeof dependencyValue) {
+    //     case 'number':
+    //       this.missingDependencies.set(dependencyKey, false);
+    //       break;
+    //     case 'boolean':
+    //       this.missingDependencies.set(dependencyKey, false);
+    //       break;
+    //     default:
+    //       this.missingDependencies.set(dependencyKey, dependencyValue);
+    //   }
+    //
+    // }
   }
 
   allSeenPropertyKeys = new Set<string>();
@@ -103,6 +152,7 @@ export class Marshaller {
   determineAndAddMissingDependencies<T>(marshalledItems: T[]) {
     this.determineMissingDependencies<T>(marshalledItems);
     this.populateMissingDependencies<T>(marshalledItems);
+    this.reconcileMissingDependencies();
     this.injectMissingDependencies<T>(marshalledItems);
   }
 
@@ -116,6 +166,7 @@ export class Marshaller {
     }
   }
 
+
   populateMissingDependencies<T>(marshalledItems: T[]) {
     for (const marshalledItem of marshalledItems) {
       for (const dep of this.missingPropertyKeys) {
@@ -125,6 +176,7 @@ export class Marshaller {
       }
     }
   }
+
 
   injectMissingDependencies<T>(marshalledItems: T[]) {
     for (const marshalledItem of marshalledItems) {
@@ -170,11 +222,10 @@ export class Marshaller {
     }
 
     if (topLevel) {
-
       for (const missingKey of completeKeySet) {
         if (docObject[missingKey]) {
           (marshalledObject as any)[missingKey] = docObject[missingKey];
-          this.addMissingDependency(missingKey, docObject[missingKey]);
+          this.addMissingDependency(missingKey, docObject[missingKey], true);
           this.allSeenPropertyKeys.add(missingKey);
         }
       }

@@ -27,7 +27,7 @@ const generateEnums = (
 
   let maxValue = 0;
 
-  for (const [name, value] of oldEnumsMap) {
+  for (const [name, value] of oldEnumsMap.sort((a: any, b: any) => a[0].localeCompare(b[0]))) {
     if (newNamesSet.has(name)) {
       newNamesSet.delete(name);
       lineEntries.push(formatEntry(name, value, false));
@@ -44,6 +44,8 @@ const generateEnums = (
     numNewEnums++;
     lineEntries.push(formatEntry(name as string, maxValue++, false, true));
   }
+
+  console.log(desiredName, "had " + numNewEnums, " new enums")
 
   return {
     text: `export enum ${desiredName} {\n${lineEntries.join('\n')}\n}`,

@@ -28,6 +28,7 @@ jobs:
           path: ./.SourceData
           repository: SatisGraphtory/SourceData
           ref: ${{ env._SOURCE_REF }}
+          token: ${{ secrets.PUSH_TOKEN }}
 
       - name: Set pipeline refs
         working-directory: ./.SourceData
@@ -84,6 +85,7 @@ jobs:
           path: ./.SourceData
           repository: SatisGraphtory/SourceData
           ref: ${{ env.SOURCE_SHA }}
+          token: ${{ secrets.PUSH_TOKEN }}
 
       - name: Checkout DataLanding
         uses: actions/checkout@v2

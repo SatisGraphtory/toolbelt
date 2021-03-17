@@ -7,12 +7,21 @@ TARGET_REF="${2:-master}"
 DESTINATION=./.${REPOSITORY}
 
 if [[ ! -d "${DESTINATION}" ]]; then
-  git clone \
-    https://github.com/SatisGraphtory/${REPOSITORY} \
-    --quiet \
-    --reference-if-able ../${REPOSITORY} \
-    -n \
-    "${DESTINATION}"
+  if [[ -z "${PUSH_TOKEN}" ]]; then
+    git clone \
+      https://github.com/SatisGraphtory/${REPOSITORY} \
+      --quiet \
+      --reference-if-able ../${REPOSITORY} \
+      -n \
+      "${DESTINATION}"
+  else
+    git clone \
+      https://${PUSH_TOKEN}@github.com/SatisGraphtory/${REPOSITORY} \
+      --quiet \
+      --reference-if-able ../${REPOSITORY} \
+      -n \
+      "${DESTINATION}"
+  fi
 fi
 
 cd "${DESTINATION}"
