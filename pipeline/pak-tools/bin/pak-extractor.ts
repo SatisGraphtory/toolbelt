@@ -229,15 +229,22 @@ async function main() {
 
   const verifiedBuildableFiles = new Set([...buildingSlugToFileMap.values()]);
 
-  const {objectMap: pipeMap, slugToClassMap: pipeSlugToClassMap} = await marshallSubclassGeneric<any>(pakFile,
-    verifiedBuildableFiles,
-    docObjects,
-    "UFGPipeConnectionComponent", true)
 
-  const {objectMap: beltMap, slugToClassMap: beltSlugToClassMap} = await marshallSubclassGeneric<any>(pakFile,
-    verifiedBuildableFiles,
-    docObjects,
-    "UFGFactoryConnectionComponent", true)
+  // ====================================================================================
+  /* The below section needs a LOT of help in terms of not hand jamming in the future. */
+  // ************************************************************************************
+  // We'll need to add gas and heat too
+
+
+  // const {objectMap: pipeMap, slugToClassMap: pipeSlugToClassMap} = await marshallSubclassGeneric<any>(pakFile,
+  //   verifiedBuildableFiles,
+  //   docObjects,
+  //   "UFGPipeConnectionComponent", true)
+  //
+  // const {objectMap: beltMap, slugToClassMap: beltSlugToClassMap} = await marshallSubclassGeneric<any>(pakFile,
+  //   verifiedBuildableFiles,
+  //   docObjects,
+  //   "UFGFactoryConnectionComponent", true)
 
   const connectionMapper = new ConnectionMapper();
 
@@ -253,11 +260,32 @@ async function main() {
     ]
   })
 
-  // We'll need to add gas and heat too
-  connectionMapper.addConnectionMap(beltSlugToClassMap, beltMap, "mDirection",
-    EResourceForm.RF_SOLID, EResourceForm, EFactoryConnectionDirection);
-  connectionMapper.addConnectionMap(pipeSlugToClassMap, pipeMap, "mPipeConnectionType",
-    EResourceForm.RF_LIQUID, EResourceForm, EPipeConnectionType);
+  const connectionSupportedResourceTypes = {
+    1: {
+      supportedResourceForms: [EResourceForm.RF_SOLID],
+      enumType: EFactoryConnectionDirection,
+      propertyField: "mDirection",
+      unrealClassName: "UFGFactoryConnectionComponent",
+      resourceType: 'AFGBuildableConveyorBelt'
+    },
+    2: {
+      supportedResourceForms: [EResourceForm.RF_LIQUID, EResourceForm.RF_LIQUID],
+      enumType: EPipeConnectionType,
+      propertyField: "mPipeConnectionType",
+      unrealClassName: "UFGPipeConnectionComponent",
+      resourceType: 'AFGBuildablePipeline'
+    },
+  }
+
+  for (const [resourceType, resourceEntry] of Object.entries(connectionSupportedResourceTypes)) {
+    const {objectMap, slugToClassMap} = await marshallSubclassGeneric<any>(pakFile,
+      verifiedBuildableFiles,
+      docObjects,
+      resourceEntry.unrealClassName, true)
+
+    connectionMapper.addConnectionMap(slugToClassMap, objectMap, resourceEntry.propertyField,
+      parseInt(resourceType, 10), resourceEntry.resourceType, resourceEntry.enumType);
+  }
 
   /** Write out connections.json  **/
   const connectionMapPath = path.join(paths.dataWarehouse.main, 'Connections.json');
@@ -266,14 +294,30 @@ async function main() {
 
   fs.writeFileSync(connectionMapPath, connectionMapper.getFinalResourceMapString())
 
-  /** Write out enums used for serialization.json  **/
-  const enumsPath = path.join(paths.dataWarehouse.enums, 'dataEnums.ts');
+  /** Write out connections.json  **/
+  const connectionResourceFormsMapPath = path.join(paths.dataWarehouse.main, 'ConnectionResourceForms.json')
+
+  const simplifiedConnectionSupportedResourceTypes = {} as Record<string, number[]>;
+
+  for (const [resourceType, resourceEntry] of Object.entries(connectionSupportedResourceTypes)) {
+    simplifiedConnectionSupportedResourceTypes[resourceType] = resourceEntry.supportedResourceForms
+  }
+
+  fs.writeFileSync(connectionResourceFormsMapPath, JSON.stringify(simplifiedConnectionSupportedResourceTypes, null, 2))
 
   fs.mkdirSync(paths.dataWarehouse.enums, { recursive: true });
-  const {text: enumText, numNew } = createEnumRevision();
+
+  /** Write out enums used for enums  **/
+  const enumsPath = path.join(paths.dataWarehouse.enums, 'dataEnums.ts');
+
+  const {text: enumText, numNew } = createEnumRevision(Object.values(connectionSupportedResourceTypes).map(item => item.resourceType));
   if (numNew) {
     fs.writeFileSync(enumsPath, enumText);
   }
+
+  // ====================================================================================
+  /* The above section needs a LOT of help in terms of not hand jamming in the future. */
+  // ************************************************************************************
 }
 
 

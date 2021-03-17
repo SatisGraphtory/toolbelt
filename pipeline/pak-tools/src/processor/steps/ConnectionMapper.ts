@@ -1,4 +1,4 @@
-import {EResourceForm} from "../../../../../.DataLanding/interfaces/enums";
+import {ConnectionTypeEnum} from "../../../../../.DataWarehouse/enums/dataEnums";
 
 export default class ConnectionMapper {
   constructor() {
@@ -14,8 +14,8 @@ export default class ConnectionMapper {
 
   private addBasicMaps(baseName: string) {
     this.processedConnectionMap.set(baseName, {
-      resourceFormMap: new Map<number, any>(),
-      humanReadableResourceFormMap: new Map<string, any>()
+      connectionMap: new Map<number, any>(),
+      humanReadableConnectionMap: new Map<string, any>()
     })
   }
 
@@ -30,17 +30,18 @@ export default class ConnectionMapper {
   }
 
   public addConnectionMap(slugToClassMap: Map<string, string>,
-                          connectionMap: Map<string, any[]>, propertyField: string,
-                          resourceType: EResourceForm,
-                          resourceFormEnum: any,
+                          connectionMap: Map<string, any[]>,
+                          propertyField: string,
+                          connectionType: ConnectionTypeEnum,
+                          connectionTypeName: any,
                           directionEnum: any) {
     for (const [slug, className] of slugToClassMap.entries()) {
       if (!this.processedConnectionMap.has(slug)) {
         this.addBasicMaps(slug);
       }
 
-      const slugResourceFormMap = this.processedConnectionMap.get(slug)!.resourceFormMap;
-      const readableSlugResourceFormMap = this.processedConnectionMap.get(slug)!.humanReadableResourceFormMap;
+      const slugResourceFormMap = this.processedConnectionMap.get(slug)!.connectionMap;
+      const readableSlugResourceFormMap = this.processedConnectionMap.get(slug)!.humanReadableConnectionMap;
 
       const entries = connectionMap.get(slug);
       let connectionCount = new Map<number, number>();
@@ -67,13 +68,12 @@ export default class ConnectionMapper {
         readableConnectionCount.set(readableConnectionTypeValue, currentValue + 1);
       }
 
-      if (!slugResourceFormMap.has(resourceType)) {
-        slugResourceFormMap.set(resourceType, connectionCount);
+      if (!slugResourceFormMap.has(connectionType)) {
+        slugResourceFormMap.set(connectionType, connectionCount);
 
-        const readableResourceType = resourceFormEnum[resourceType.toString()];
-        readableSlugResourceFormMap.set(readableResourceType, readableConnectionCount);
+        readableSlugResourceFormMap.set(connectionTypeName, readableConnectionCount);
       } else {
-        throw new Error(`ResourceForm ${resourceType} already exists in slugMap`)
+        throw new Error(`Connection type ${connectionType} already exists in slugMap`)
       }
     }
   }

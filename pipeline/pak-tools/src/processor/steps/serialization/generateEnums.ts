@@ -1,7 +1,7 @@
 import BuildingJson from '../../../../../../.DataWarehouse/main/BuildingClasses.json';
 import ItemJson from '../../../../../../.DataWarehouse/main/ItemClasses.json';
 import RecipeJson from '../../../../../../.DataWarehouse/main/RecipeClasses.json';
-import {buildingEnums, itemEnums, recipeEnums,} from '../../../../../../.DataWarehouse/enums/dataEnums';
+import {buildingEnums, itemEnums, recipeEnums, ConnectionTypeEnum } from '../../../../../../.DataWarehouse/enums/dataEnums';
 
 const formatEntry = (
   key: string,
@@ -80,14 +80,22 @@ const generateItemEnums = () => {
   return generateEnums(newEnumNames, oldEnumMap, 'itemEnums');
 };
 
-const createEnumRevision = () => {
+const generateConnectionTypeEnums = (connectionTypeEnumRecords: string[]) => {
+  const oldEnumMap = Object.entries(ConnectionTypeEnum).filter(
+    ([, value]) => !isNaN(value as number)
+  );
+
+  return generateEnums(connectionTypeEnumRecords, oldEnumMap, 'ConnectionTypeEnum');
+};
+
+const createEnumRevision = (connectionTypeEnumRecords: string[]) => {
   const {text: buildingEnums, numNew: numBuildingChanges} = generateBuildingEnums();
   const {text: recipeEnums, numNew: numRecipeChanges} = generateRecipeEnums();
   const {text: itemEnums, numNew: numItemChanges} = generateItemEnums();
+  const {text: connectionTypeEnums, numNew: numConnectionChanges} = generateConnectionTypeEnums(connectionTypeEnumRecords);
   return {
-    text: `${buildingEnums}\n\n${recipeEnums}\n\n${itemEnums}\n`,
-    numNew: numBuildingChanges + numRecipeChanges + numItemChanges
+    text: `${connectionTypeEnums}\n\n${buildingEnums}\n\n${recipeEnums}\n\n${itemEnums}\n`,
+    numNew: numBuildingChanges + numRecipeChanges + numItemChanges + numConnectionChanges
   }
 }
-
 export default createEnumRevision;
