@@ -130,14 +130,6 @@ async function main() {
   const buildingClassMapPath = path.join(paths.dataWarehouse.main, 'BuildingClasses.json');
   fs.writeFileSync(buildingClassMapPath, JSON.stringify(buildingSlugMap, replacer, 2))
 
-
-
-
-
-
-
-
-
   // This is the section handling schematics
   const schematicFiles = await getAllSchematicFilenames(fileNameList);
 
@@ -208,7 +200,9 @@ async function main() {
   pakTranslator.addDefaultSource(recipeMap, ((mapEntry: any) => {
     if (!mapEntry?.mDisplayNameOverride) {
       const firstItemSlug = mapEntry?.mProduct[0].ItemClass.slug;
-      return itemMap.get(firstItemSlug)?.mDisplayName?.sourceString
+      const normalItemPath = itemMap.get(firstItemSlug)?.mDisplayName?.sourceString
+      if (normalItemPath) return normalItemPath;
+      return buildableMap.get(firstItemSlug.replace(/^item-/, 'building-'))?.mDisplayName?.sourceString
     } else {
       return mapEntry?.mDisplayName?.sourceString;
     }
@@ -236,16 +230,6 @@ async function main() {
   // We'll need to add gas and heat too
 
 
-  // const {objectMap: pipeMap, slugToClassMap: pipeSlugToClassMap} = await marshallSubclassGeneric<any>(pakFile,
-  //   verifiedBuildableFiles,
-  //   docObjects,
-  //   "UFGPipeConnectionComponent", true)
-  //
-  // const {objectMap: beltMap, slugToClassMap: beltSlugToClassMap} = await marshallSubclassGeneric<any>(pakFile,
-  //   verifiedBuildableFiles,
-  //   docObjects,
-  //   "UFGFactoryConnectionComponent", true)
-
   const connectionMapper = new ConnectionMapper();
 
   // We need to add a custom handler to conveyor belts because they both report as 'input'
@@ -269,7 +253,7 @@ async function main() {
       resourceType: 'AFGBuildableConveyorBelt'
     },
     2: {
-      supportedResourceForms: [EResourceForm.RF_LIQUID, EResourceForm.RF_LIQUID],
+      supportedResourceForms: [EResourceForm.RF_LIQUID, EResourceForm.RF_GAS],
       enumType: EPipeConnectionType,
       propertyField: "mPipeConnectionType",
       unrealClassName: "UFGPipeConnectionComponent",

@@ -7,6 +7,7 @@ export default class PakTranslator {
   addDefaultSource(propertyMap: Map<string, any>, processingFunction: any) {
     for (const [key, entry] of propertyMap.entries()) {
       const value = processingFunction(entry, key);
+
       this.translationMap.set(key, value);
     }
   }
