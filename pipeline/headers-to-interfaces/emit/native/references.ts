@@ -32,4 +32,5 @@ export interface softClassReference<TClass> {
   name: string;
   subPath: string;
   member: string;
+  slug?: string;
 }
