@@ -24,6 +24,7 @@ export async function resolveSlugFromPath(fullPath: string, pakFile: PakFile) {
   let slug = await resolveSlugFromPackageReference({
     package: pathMain,
     name: fileName,
+    slug: ''
   }, pakFile, true);
 
   if (slug === undefined) {

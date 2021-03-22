@@ -333,7 +333,7 @@ async function main() {
   for (const file of JsonFiles) {
     const buffer = fs.readFileSync(path.join(paths.dataWarehouse.main, file));
     const packed = pack(buffer.toString('utf8'));
-    fs.writeFileSync(path.join(paths.dataWarehouse.mainCompressed, file), packed);
+    fs.writeFileSync(path.join(paths.dataWarehouse.mainCompressed, file.replace('.json', '.cjson')), packed);
   }
 }
 

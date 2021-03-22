@@ -4,7 +4,7 @@
 export interface packageReference<TClass> {
   package: string;
   name: string;
-  slug?: string;
+  slug: string;
 }
 
 /**

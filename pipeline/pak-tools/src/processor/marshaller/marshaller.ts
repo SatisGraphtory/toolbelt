@@ -461,7 +461,8 @@ export class Marshaller {
             name: fileNameToFind,
             slug: await resolveSlugFromPackageReference({
               package: filePathParts.join('.'),
-              name: fileNameToFind
+              name: fileNameToFind,
+              slug: ''
             }, this.pakFile)
           };
         }
@@ -550,7 +551,7 @@ export class Marshaller {
       // In-place replacement of the proper pakfile structure
       package: pathMain,
       name: fileName,
-      slug: await resolveSlugFromPackageReference({package: pathMain, name: fileName}, this.pakFile)
+      slug: await resolveSlugFromPackageReference({package: pathMain, name: fileName, slug: ''}, this.pakFile)
     };
   }
 
