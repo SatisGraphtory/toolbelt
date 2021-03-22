@@ -165,6 +165,7 @@ export async function resolveExports(pakFile: PakFile, baseObject: UObject, dept
             // }
 
             if (resolvedExportType !== null && typeWasFound) {
+              originalExport.aliasExportTypes.add(originalExport.exportTypes);
               originalExport.exportTypes = resolvedExportType as string;
               console.log("Transformed", exportType, "into", originalExport.exportTypes)
             }
@@ -213,8 +214,9 @@ export async function resolveExports(pakFile: PakFile, baseObject: UObject, dept
 
               // Merge the main property now, and the other properties rn?
 
-              const combinedPropertyList = await resolvePropertyListMerges(mainInnerProperty.propertyList, originalExport.propertyList)
+              const combinedPropertyList = await resolvePropertyListMerges(mainInnerProperty.propertyList, originalExport.propertyList);
 
+              originalExport.aliasExportTypes.add(originalExport.exportTypes);
               originalExport.exportTypes = mainInnerProperty.exportTypes;
               originalExport.propertyList = combinedPropertyList;
 

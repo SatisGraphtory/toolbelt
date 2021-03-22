@@ -5,10 +5,7 @@ import {findAdditionalClasses, findMainClass, resolveExports} from "../resolvers
 import {resolveSlugFromPath} from "../resolvers/resolveSlugs";
 import {guessSubclassesFromJsonClassName} from "../steps/json/guessSubclassesFromJsonClassName";
 
-const objectCache = new Map<string, any>();
-const loadedNonMainClasses = new Map<string, boolean>();
-
-async function marshallObject<T>(pakFile: PakFile, uObject: UObject,
+export async function marshallObject<T>(pakFile: PakFile, uObject: UObject,
                                  docEntry: Record<string, Record<string, any>>,
                                  uObjectMarshaller: Marshaller,
                                  baseClass: string, loadNonMainClasses: boolean,
@@ -28,12 +25,14 @@ async function marshallObject<T>(pakFile: PakFile, uObject: UObject,
   const returnedObjects = [] as any[];
 
   if (mainClass?.exportTypes === mainClassToFind) {
+    const additionalClasses = await findAdditionalClasses(resolvedExports) || [];
+
     const toReturn = {
       type: mainClass.exportTypes,
       filename: uObject.uasset.filename,
       slug: await resolveSlugFromPath(uObject.uasset.filename, pakFile),
       object: await uObjectMarshaller.marshalFromPropertyList<T>(
-        mainClass.propertyList, baseClass, docEntry, true)
+        mainClass.propertyList, baseClass, docEntry, additionalClasses, true)
     };
     returnedObjects.push(toReturn);
   }
@@ -43,7 +42,7 @@ async function marshallObject<T>(pakFile: PakFile, uObject: UObject,
     for (const claz of additionalClasses || []) {
       if (claz.exportTypes === mainClassToFind) {
         const subClassInfo = await uObjectMarshaller.marshalFromPropertyList<T>(
-          claz.propertyList, baseClass, docEntry, true);
+          claz.propertyList, baseClass, docEntry, [], true);
 
         const additionalClassInfo = {
           type: claz.exportTypes,

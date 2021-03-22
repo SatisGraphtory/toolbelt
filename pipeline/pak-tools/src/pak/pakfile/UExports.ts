@@ -15,6 +15,8 @@ export class UExports {
   guid = null as any;
   public readonly uuid: string = uuidv4();
 
+  public aliasExportTypes = new Set<string>();
+
   constructor(
     protected reader: Reader,
     public asset: UAsset,

@@ -88,6 +88,7 @@ const generateConnectionTypeEnums = (connectionTypeEnumRecords: string[]) => {
   return generateEnums(connectionTypeEnumRecords, oldEnumMap, 'ConnectionTypeEnum');
 };
 
+
 const createEnumRevision = (connectionTypeEnumRecords: string[]) => {
   const {text: buildingEnums, numNew: numBuildingChanges} = generateBuildingEnums();
   const {text: recipeEnums, numNew: numRecipeChanges} = generateRecipeEnums();

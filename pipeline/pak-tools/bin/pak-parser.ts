@@ -84,10 +84,21 @@ async function main() {
   console.log("Finished loading PakFile")
 
   /** Get and write out recipes.json **/
-  const genericFiles = new Set(['FactoryGame/Content/FactoryGame/Schematics/Alternate/New_Update4/Schematic_Alternate_ClassicBattery.uasset']);
+  const genericFiles = new Set(['FactoryGame/Content/FactoryGame/Equipment/BoomBox/Equip_BoomBox.uasset']);
 
-  const {collapsedObjectMap: schematicMap, dependencies: schematicDependencies, slugToClassMap: schematicSlugMap } = await marshallSubclassGeneric<UFGSchematic>(pakFile,
-    genericFiles, {}, "UFGSchematic", false, false, true)
+  const {collapsedObjectMap: schematicMap, dependencies: schematicDependencies, slugToClassMap: schematicSlugMap } = await marshallSubclassGeneric<any>(pakFile,
+    genericFiles, {}, "UFGEquipmentDescriptor", false, false, true)
+
+  console.log(schematicMap);
+
+
+  // const genericFiles = new Set(['FactoryGame/Content/FactoryGame/Schematics/Alternate/New_Update4/Schematic_Alternate_ClassicBattery.uasset']);
+  //
+  // const {collapsedObjectMap: schematicMap, dependencies: schematicDependencies, slugToClassMap: schematicSlugMap } = await marshallSubclassGeneric<UFGSchematic>(pakFile,
+  //   genericFiles, {}, "UFGSchematic", false, false, true)
+
+
+
 
   // const {collapsedObjectMap: recipeMap,  slugToClassMap: recipeSlugMap } = await marshallSubclassGeneric<UFGRecipe>(pakFile,
   //   recipeFiles, {}, "UFGRecipe", false, false, true)

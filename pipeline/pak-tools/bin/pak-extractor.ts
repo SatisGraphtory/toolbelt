@@ -16,6 +16,7 @@ import getAllSchematicFilenames from "../src/processor/steps/schematics/getAllSc
 import getDocs from "../src/processor/steps/docs/getDocs";
 import getAllRecipeFilenames from "../src/processor/steps/recipes/getAllRecipeFilenames";
 import path from "path";
+import { pack, unpack } from 'jsonpack';
 
 import {
   EFactoryConnectionDirection,
@@ -98,6 +99,25 @@ async function main() {
   //     console.log(localizationFile, await pakFile.getLocalizationFile(localizationFile));
   //   }
   // }
+
+  const pakTranslator = new PakTranslator();
+
+  // TODO: Move this out to its own file?
+  const purityDefinitionFile = 'FactoryGame/Content/FactoryGame/Resource/BP_ResourceDeposit.uasset';
+
+  const {collapsedObjectMap: purityMap } = await marshallSubclassGeneric<any>(pakFile,
+    new Set([purityDefinitionFile]), docObjects, "AFGResourceDeposit",
+    false, false, true)
+
+  const purityTextEntries = purityMap.get('slug::nonstandard-resource-bp-resource-deposit')!.mPurityTextArray;
+  const purityTextMap = new Map<string, any>();
+  for (const entry of purityTextEntries) {
+    purityTextMap.set(entry.Purity, entry.Text);
+  }
+
+  pakTranslator.addDefaultSource(purityTextMap, ((mapEntry: any) => {
+    return mapEntry.sourceString
+  }))
 
   function replacer(key: string, value: any) {
     if(value instanceof Map) {
@@ -190,8 +210,6 @@ async function main() {
     await image.toFile(imagePath);
     i++;
   }
-
-  const pakTranslator = new PakTranslator();
 
   pakTranslator.addDefaultSource(buildableMap, ((mapEntry: any) => {
     return mapEntry?.mDisplayName?.sourceString
@@ -294,7 +312,9 @@ async function main() {
   /** Write out enums used for enums  **/
   const enumsPath = path.join(paths.dataWarehouse.enums, 'dataEnums.ts');
 
-  const {text: enumText, numNew } = createEnumRevision(Object.values(connectionSupportedResourceTypes).map(item => item.resourceType));
+  const {text: enumText, numNew } = createEnumRevision(
+    Object.values(connectionSupportedResourceTypes).map(item => item.resourceType)
+    );
   if (numNew) {
     fs.writeFileSync(enumsPath, enumText);
   }
@@ -302,6 +322,19 @@ async function main() {
   // ====================================================================================
   /* The above section needs a LOT of help in terms of not hand jamming in the future. */
   // ************************************************************************************
+
+
+
+  // Write compressed data files
+  fs.mkdirSync(paths.dataWarehouse.mainCompressed, { recursive: true });
+
+  const JsonFiles = fs.readdirSync(paths.dataWarehouse.main);
+
+  for (const file of JsonFiles) {
+    const buffer = fs.readFileSync(path.join(paths.dataWarehouse.main, file));
+    const packed = pack(buffer.toString('utf8'));
+    fs.writeFileSync(path.join(paths.dataWarehouse.mainCompressed, file), packed);
+  }
 }
 
 
