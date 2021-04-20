@@ -48,10 +48,10 @@ async function main() {
     BRANCH = "experimental"
     NEWS_SOURCE = NEWS_EXPERIMENTAL;
 
-    console.log(execSync(`cd ${paths.sourceData.root}; git reset --hard; \
+    console.log(execSync(`cd ${paths.sourceData.root}; git clean -d -n; git reset --hard; \
       git checkout experimental; git pull`).toString())
   } else {
-    console.log(execSync(`cd ${paths.sourceData.root}; git reset --hard; \
+    console.log(execSync(`cd ${paths.sourceData.root}; git clean -d -n; git reset --hard; \
       git checkout master; git pull`).toString())
   }
 
@@ -127,8 +127,8 @@ async function generateMetadataJson() {
   if (news.buildNumber !== buildNumber) {
     if (news.buildNumber < buildNumber) {
       throw new Error(`The file build number (${buildNumber}) and the news build number (${news.buildNumber}) do not match!`)
-      // news.buildNumber = buildNumber
-      // news.semanticVersion = "0.4.0.0"
+      // news.buildNumber = 151248
+      // news.semanticVersion = "0.4.2.0"
     } else {
       console.warn(`The file build number (${buildNumber}) is less than the news build number (${news.buildNumber})! (But we're ignoring this!)`)
     }

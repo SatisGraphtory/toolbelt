@@ -253,7 +253,11 @@ export class Marshaller {
         } as unknown as Shape<typeof FPropertyTag>, docObject, innerType, additionalClasses);
 
         if (parsedArrayItem !== null) {
-          returnedArray.push(parsedArrayItem);
+          if (typeof parsedArrayItem === 'object' && parsedArrayItem?.DUMMY_INVALID_NAME !== undefined) {
+            returnedArray.push(parsedArrayItem.DUMMY_INVALID_NAME);
+          } else {
+            returnedArray.push(parsedArrayItem);
+          }
         }
       }
     }

@@ -138,7 +138,7 @@ jobs:
           git config --global user.email "satisgraphtory-bot@satisgraphtory.com"
           git config --global user.name "Satisgraphtory DataBot"
           git fetch origin ${LANDING_BRANCH}
-          git merge --squash origin/${LANDING_BRANCH}
+          git merge --squash origin/${LANDING_BRANCH} --allow-unrelated-histories
           if [[ "$(git status --porcelain)" != "" ]]; then
             git commit --allow-empty -m "v${GAME_VERSION} (CL ${GAME_BUILD}) (SatisGraphtory/SourceData@${SOURCE_SHA} via SatisGraphtory/ToolBelt@${ENGINEERING_SHA})"
             git push

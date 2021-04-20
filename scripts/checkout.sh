@@ -6,6 +6,10 @@ TARGET_REF="${2:-master}"
 
 DESTINATION=./.${REPOSITORY}
 
+if [[ -e .env ]]; then
+  source .env
+fi
+
 if [[ ! -d "${DESTINATION}" ]]; then
   if [[ -z "${PUSH_TOKEN}" ]]; then
     git clone \

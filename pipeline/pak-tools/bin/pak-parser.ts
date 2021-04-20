@@ -83,13 +83,26 @@ async function main() {
 
   console.log("Finished loading PakFile")
 
-  /** Get and write out recipes.json **/
-  const genericFiles = new Set(['FactoryGame/Content/FactoryGame/Equipment/BoomBox/Equip_BoomBox.uasset']);
+  const globalDict = {} as Record<string, any>;
 
-  const {collapsedObjectMap: schematicMap, dependencies: schematicDependencies, slugToClassMap: schematicSlugMap } = await marshallSubclassGeneric<any>(pakFile,
-    genericFiles, {}, "UFGEquipmentDescriptor", false, false, true)
+  for (const entry of pakFile.entries.keys()) {
+    if (entry.endsWith('.uasset')) {
+      const classes = await pakFile.getExportType(entry);
+      if (classes) {
+        globalDict[classes.path] = classes.exports;
+      }
+    }
+  }
+  fs.writeFileSync("classDump.json", JSON.stringify(globalDict, null, 2))
 
-  console.log(schematicMap);
+
+  // /** Get and write out recipes.json **/
+  // const genericFiles = new Set(['FactoryGame/Content/FactoryGame/Equipment/BoomBox/Equip_BoomBox.uasset']);
+  //
+  // const {collapsedObjectMap: schematicMap, dependencies: schematicDependencies, slugToClassMap: schematicSlugMap } = await marshallSubclassGeneric<any>(pakFile,
+  //   genericFiles, {}, "UFGEquipmentDescriptor", false, false, true)
+  //
+  // console.log(schematicMap);
 
 
   // const genericFiles = new Set(['FactoryGame/Content/FactoryGame/Schematics/Alternate/New_Update4/Schematic_Alternate_ClassicBattery.uasset']);
@@ -103,7 +116,7 @@ async function main() {
   // const {collapsedObjectMap: recipeMap,  slugToClassMap: recipeSlugMap } = await marshallSubclassGeneric<UFGRecipe>(pakFile,
   //   recipeFiles, {}, "UFGRecipe", false, false, true)
 
-  consoleInspect(schematicMap);
+  // consoleInspect(schematicMap);
 }
 
 

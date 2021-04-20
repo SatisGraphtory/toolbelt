@@ -193,6 +193,24 @@ export class PakFile {
     return uObjectFile.getDictionary();
   }
 
+  public async getExportType(path: string) {
+    if (path.endsWith('.uasset')) {
+      const uassetPackageFile = await this.getPackageFile(path);
+      const uassetFile = await this.getUAsset(path, uassetPackageFile);
+      const exports = [] as string[];
+      for (const exp of uassetFile.exports) {
+        exports.push(exp.objectName);
+      }
+
+      return {
+        path: path,
+        exports
+      }
+    } else {
+      return null;
+    }
+  }
+
   private async getPackage(path: string) {
     if (this.packageCache.has(path)) {
       return this.packageCache.get(path)!
