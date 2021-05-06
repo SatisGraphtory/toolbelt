@@ -29,7 +29,7 @@
     "chokidar": "^3.4.3",
     "dashdash": "^2.0.0",
     "js-beautify": "^1.6.14",
-    "lodash": "^4.17.3",
+    "lodash": "^4.17.21",
     "recursive-readdir": "^2.1.1",
     "ts-node": "^9.0.0"
   }
