@@ -18,7 +18,7 @@
     "coveralls": "^3.0.0",
     "mocha": "^8.2.1",
     "mocha-lcov-reporter": "^1.2.0",
-    "mock-fs": "^4.0.0",
+    "mock-fs": "^5.0.0",
     "nyc": "^15.1.0",
     "standard": "^16.0.1",
     "standard-json": "^1.0.2"
@@ -31,6 +31,6 @@
     "js-beautify": "^1.6.14",
     "lodash": "^4.17.3",
     "recursive-readdir": "^2.1.1",
-    "ts-node": "^9.0.0"
+    "ts-node": "^10.0.0"
   }
 }
