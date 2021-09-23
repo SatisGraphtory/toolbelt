@@ -24,12 +24,12 @@
     "standard-json": "^1.0.2"
   },
   "dependencies": {
-    "@types/lodash": "^4.14.164",
+    "@types/lodash": "^4.14.173",
     "bluebird": "^3.5.0",
-    "chokidar": "^3.4.3",
+    "chokidar": "^3.5.2",
     "dashdash": "^2.0.0",
-    "js-beautify": "^1.6.14",
-    "lodash": "^4.17.3",
+    "js-beautify": "^1.14.0",
+    "lodash": "^4.17.21",
     "recursive-readdir": "^2.1.1",
     "ts-node": "^9.0.0"
   }
