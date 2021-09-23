@@ -9,7 +9,6 @@ on:
 
 jobs:
   setup:
-    if: github.event_name == 'push' || github.event.action == 'source-data-updated'
     runs-on: ubuntu-latest
     steps:
       - name: Determine source ref and game branch
@@ -108,7 +107,7 @@ jobs:
       - run: yarn interfaces-to-json
 
       - name: Push to DataLanding
-        if: ${{!contains(github.ref, '/pull/')}}
+        if: github.event_name == 'push' || github.event.action == 'source-data-updated'
         working-directory: ./.DataLanding
         run: |
           git config --global user.email "satisgraphtory-bot@satisgraphtory.com"
@@ -136,7 +135,7 @@ jobs:
           token: ${{ secrets.PUSH_TOKEN }}
 
       - name: Merge
-        if: ${{!contains(github.ref, '/pull/')}}
+        if: github.event_name == 'push' || github.event.action == 'source-data-updated'
         run: |
           git config --global user.email "satisgraphtory-bot@satisgraphtory.com"
           git config --global user.name "Satisgraphtory DataBot"
