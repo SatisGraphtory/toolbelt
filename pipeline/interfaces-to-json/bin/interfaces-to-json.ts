@@ -22,6 +22,8 @@ function parseAll(sourceDir = paths.dataLanding.interfaces, destDir = paths.data
   sourceDir = path.resolve(sourceDir);
   destDir = path.resolve(destDir);
 
+  fs.rmdirSync(destDir, { recursive: true });
+
   const globExpression = `${sourceDir}/**/*.ts`;
 
   const nativeGlobExpression = `${sourceDir}/**/native/*.ts`;

@@ -31,7 +31,8 @@ export function FPakInfo(version: PakVersion) {
     };
 
     if (info.version >= PakVersion.FrozenIndex) {
-      await reader.read(UInt8);
+      const isFrozen = await reader.read(UInt8);
+      if (isFrozen) throw new Error("Pak is frozen.")
     }
 
     const compressionMethods = [] as (string | null)[];
@@ -41,8 +42,9 @@ export function FPakInfo(version: PakVersion) {
       compressionMethods.push(await reader.read(FixedCString(32)));
       compressionMethods.push(await reader.read(FixedCString(32)));
       compressionMethods.push(await reader.read(FixedCString(32)));
+      // console.log(compressionMethods);
       // TODO: Remove this once it's patched
-      compressionMethods.push(await reader.read(FixedCString(32)));
+      // compressionMethods.push(await reader.read(FixedCString(32)));
     }
 
     if (info.magic !== MAGIC_NUMBER) {
@@ -71,6 +73,9 @@ export function FPakInfoSize(version: PakVersion) {
   if (version >= PakVersion.FNameBasedCompressionMethod) size += 32 * 4;
   if (version >= PakVersion.FrozenIndex) size += 1;
   if (version >= PakVersion.FrozenIndex) size += 32;
-
+  // I really don't know.
+  if (version >= PakVersion.PathHashIndex) size += -1;
+  // Maybe move to guessing game?
+  https://github.com/FabianFG/CUE4Parse/blob/423682f93c315e3e7c677bdb30f54d79f303222f/CUE4Parse/UE4/Pak/Objects/FPakInfo.cs#L182
   return size;
 }

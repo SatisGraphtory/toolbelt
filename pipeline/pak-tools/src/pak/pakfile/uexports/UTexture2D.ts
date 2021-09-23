@@ -9,6 +9,7 @@ import {FName} from "../../structs/UScript/FName";
 import {FStripDataFlags} from "../../structs/texture/FStripDataFlags";
 import {bigintToNumber} from "../../../util/numeric";
 import {ImageExporter} from "../../exporter/imageExporter/ImageExporter";
+import consoleInspect from "../../../util/consoleInspect";
 
 export class UTexture2D extends UExports {
   cooked = 0;
@@ -26,10 +27,24 @@ export class UTexture2D extends UExports {
   }
 
   getImage() {
+
+    let index = 0;
+    let storedX = -Infinity;
+
+    let bestIndex = 0;
+
+    for (const texture of this.textures[0].mips) {
+      if (texture.sizeX > storedX) {
+        bestIndex = index;
+        storedX = texture.sizeX;
+      }
+      index++;
+    }
+
     return {
-      x: this.textures[0].sizeX,
-      y: this.textures[0].sizeY,
-      data: ImageExporter.getImage(this.textures[0].mips[0], this.textures[0].pixelFormat),
+      x: this.textures[0].mips[bestIndex].sizeX,
+      y: this.textures[0].mips[bestIndex].sizeY,
+      data: ImageExporter.getImage(this.textures[0].mips[bestIndex], this.textures[0].pixelFormat),
     };
   }
 
@@ -48,17 +63,17 @@ export class UTexture2D extends UExports {
     if (this.cooked === 1) {
       let pixelFormat = await this.reader.read(FName(this.asset.names));
       while (pixelFormat !== 'None') {
-        const skipOffset = bigintToNumber(await this.reader.read(Int64));
+        const skipOffset = await this.reader.read(Int64);
         const texture = await this.reader.read(
-          FTexturePlatformData(this.uBulkReader, assetLength + exportSize),
+          FTexturePlatformData(this.uBulkReader, BigInt(assetLength) + BigInt(exportSize)),
         );
 
         // We need to use this to populate isVirtual in case it exists
-        if (this.reader.position + assetLength + 4 === skipOffset) {
+        if (this.reader.position + BigInt(assetLength) + BigInt(4) === skipOffset) {
           texture.isVirtual = (await this.reader.read(Int32)) === 1;
         }
 
-        if (this.reader.position + assetLength !== skipOffset) {
+        if (this.reader.position + BigInt(assetLength) !== skipOffset) {
           throw new Error('Texture file read incorrectly');
         }
 

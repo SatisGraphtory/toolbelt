@@ -8,6 +8,7 @@ import {FGuid} from "./UScript/UScriptStrutTypes/FGuid";
 import {FEngineVersion} from "./file/FEngineVersion";
 import {FCustomVersion} from "./file/FCustomVersion";
 import {PakVersion} from "../PakFile";
+import {FString} from "../containers/FString";
 
 export const PackageFileTag = Buffer.from([0x9e, 0x2a, 0x83, 0xc1]).readInt32LE();
 export const PackageFileTagSwapped = Buffer.from([0xc1, 83, 0x2a, 0x9e]).readInt32LE();
@@ -16,16 +17,69 @@ export const PackageFileTagSwapped = Buffer.from([0xc1, 83, 0x2a, 0x9e]).readInt
 export function FPackageFileSummary(pakVersion: PakVersion) {
   return async function FPackageFileSummaryReader(reader: Reader) {
 
+    const tag = await reader.read(UInt32);
+
+    const  PACKAGE_FILE_TAG = 0x9E2A83C1;
+    const  PACKAGE_FILE_TAG_SWAPPED = 0xC1832A9E;
+    const  PACKAGE_FILE_TAG_ONE = 0x00656E6F; // SOD2
+
+    if (tag == PACKAGE_FILE_TAG_ONE) // SOD2, "one"
+    {
+      throw new Error("This should never be true");
+    }
+
+    if (tag !== PACKAGE_FILE_TAG_ONE && tag !== PACKAGE_FILE_TAG && tag !== PACKAGE_FILE_TAG_SWAPPED)
+    {
+      throw new Error("Invalid parsing of package file summary");
+    }
+
+    if (tag === PACKAGE_FILE_TAG_SWAPPED)
+    {
+      // Set proper tag.
+      //Tag = PACKAGE_FILE_TAG;
+      // Toggle forced byte swapping.
+      throw new Error("Byte swapping for packages not supported");
+    }
+
+    const currentLegacyFileVersion = -7;
+
+    const legacyFileVersion = await reader.read(Int32);
+    let legacyUE3Version = 0;
+    let fileVersionUE4 = 0
+    let fileVersionLicenseUE4 = 0
+    let customVersionContainer = null as any;
+    if (legacyFileVersion < 0) // means we have modern version numbers
+    {
+      if (legacyFileVersion < currentLegacyFileVersion)
+      {
+        // we can't safely load more than this because the legacy version code differs in ways we can not predict.
+        // Make sure that the linker will fail to load with it.
+        throw new Error("Can't load legacy UE3 file");
+      }
+
+      legacyUE3Version = legacyFileVersion !== -4 ? await reader.read(Int32) : 0;
+      fileVersionUE4 = await reader.read(Int32);
+      fileVersionLicenseUE4 = await reader.read(Int32);
+
+      customVersionContainer = legacyFileVersion <= -2 ? await reader.read(TArray(FCustomVersion)) : [];
+    }
+    else {
+      // This is probably an old UE3 file, make sure that the linker will fail to load with it.
+      throw new Error("Can't load legacy UE3 file");
+    }
+
+    const totalHeaderSize = await reader.read(Int32);
+
     return {
       // TODO: Tag is PackageFileTagSwapped; flip endianness of our reads?
-      tag: await reader.read(Int32),
-      legacyFileVersion: await reader.read(Int32),
-      legacyUE3Version: await reader.read(Int32),
-      fileVersion: await reader.read(Int32),
-      fileVersionLicensee: await reader.read(Int32),
-      customVersions: await reader.read(TArray(FCustomVersion)),
-      totalHeaderSize: await reader.read(Int32),
-      folderName: await reader.read(UnrealString),
+      tag: tag,
+      legacyFileVersion,
+      legacyUE3Version,
+      fileVersionUE4,
+      fileVersionLicenseUE4,
+      customVersionContainer,
+      totalHeaderSize,
+      folderName: await reader.read(FString),
       packageFlags: await reader.read(UInt32),
       nameCount: await reader.read(Int32),
       nameOffset: await reader.read(Int32),

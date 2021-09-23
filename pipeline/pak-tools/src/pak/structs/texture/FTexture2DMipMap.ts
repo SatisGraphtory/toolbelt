@@ -3,7 +3,7 @@ import {Int32} from "../../primitive/integers";
 import {FByteBulkData} from "./FByteBulkData";
 import {FString} from "../../containers/FString";
 
-export function FTexture2DMipMap(ubulkReader: Reader | undefined, bulkOffset: number) {
+export function FTexture2DMipMap(ubulkReader: Reader | undefined, bulkOffset: bigint) {
   return async function FTexture2DMipMapParser(reader: Reader) {
     const cooked = await reader.read(Int32);
     const bulkData = await reader.read(FByteBulkData(ubulkReader, bulkOffset));

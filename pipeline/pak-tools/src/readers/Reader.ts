@@ -3,25 +3,26 @@ import * as util from 'util';
 import {Parser} from "../util/parsers";
 
 type ReadTracker = {
-  read: number;
+  read: bigint;
   child: ReadTracker | null;
-  originalPosition: number;
+  originalPosition: bigint;
 };
 
 export abstract class Reader {
-  abstract size: number;
+  abstract size: bigint;
 
-  abstract async readBytesAt(position: number, length: number): Promise<Buffer>;
+  abstract async readBytesAt(position: number | bigint, length: number | bigint): Promise<Buffer>;
 
-  private readTracker: ReadTracker = {read: 0, child: null, originalPosition: 0};
+  private readTracker: ReadTracker = {read: BigInt(0), child: null, originalPosition: BigInt(0)};
 
-  private _position = 0;
+  private _position = BigInt(0);
 
   get position() {
     return this._position;
   }
 
-  set position(newPosition: number) {
+  set position(newPosition: bigint) {
+
     if (newPosition > this.size) {
       throw new Error(`Cannot 
       seek to ${newPosition} - out of bounds (file size: ${this.size})`);
@@ -45,14 +46,15 @@ export abstract class Reader {
     return result;
   }
 
-  async readBytes(length: number) {
-    const buffer = await this.readBytesAt(this.position, length);
-    this.position += length;
-    this.incrementTracker(length, this.readTracker);
+  async readBytes(length: number | bigint) {
+    const bigIntLength = BigInt(length);
+    const buffer = await this.readBytesAt(this.position, bigIntLength);
+    this.position += bigIntLength;
+    this.incrementTracker(bigIntLength, this.readTracker);
     return buffer;
   }
 
-  private incrementTracker(length: number, tracker: ReadTracker) {
+  private incrementTracker(length: bigint, tracker: ReadTracker) {
     tracker.read += length;
     if (tracker.child) {
       this.incrementTracker(length, tracker.child);
@@ -62,7 +64,7 @@ export abstract class Reader {
   trackReads() {
     this.readTracker = {
       originalPosition: this.position,
-      read: 0,
+      read: BigInt(0),
       child: this.readTracker,
     };
   }
@@ -81,7 +83,9 @@ export abstract class Reader {
     return await this.readBytes(this.size);
   }
 
-  seekTo(position: number) {
+  seekTo(position: number | bigint) {
+    position = BigInt(position);
+
     if (position < 0) {
       this.position = this.size + position;
     } else {
@@ -89,11 +93,11 @@ export abstract class Reader {
     }
   }
 
-  skip(length: number) {
-    this.position += length;
+  skip(length: number | bigint) {
+    this.position += BigInt(length);
   }
 
-  async checkHash(context: string, size: number, hash: Buffer, algorithm = 'sha1') {
+  async checkHash(context: string, size: number | bigint, hash: Buffer, algorithm = 'sha1') {
     const position = this.position;
 
     const dataHash = crypto
@@ -108,9 +112,11 @@ export abstract class Reader {
     this.seekTo(position);
   }
 
-  async scan(bytes: Buffer, distance: number, start: number = this.position) {
+  async scan(bytes: Buffer, distance: number | bigint, start: number | bigint = this.position) {
+    start = BigInt(start);
+    distance = BigInt(distance);
     let position = start;
-    let end: number;
+    let end: bigint;
     if (distance < 0) {
       end = start;
       position = start + distance;
@@ -126,7 +132,7 @@ export abstract class Reader {
         return position > 0 ? position : this.size + position;
       }
 
-      position += 1;
+      position += BigInt(1);
     }
 
     throw new Error(`Unable to find ${util.inspect(bytes)} between ${start}—${end}`);

@@ -6,7 +6,7 @@
     "outDir": "dist",
     "sourceMap": true,
     "strict": true,
-    "target": "es2017",
+    "target": "ES2019",
     "lib": ["ES2020", "dom"],
     "moduleResolution": "node",
     "noEmit": true,

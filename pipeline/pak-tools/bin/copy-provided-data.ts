@@ -77,6 +77,11 @@ async function copyHeaders(sourceHeaderFolder = path.join(INSTALL_DIR, 'Communit
                         targetHeaderFolder = path.join(paths.sourceData.headers)) {
   console.log(path.join(sourceHeaderFolder, "Headers.zip"), targetHeaderFolder);
 
+  const files = fs.readdirSync(sourceHeaderFolder);
+  for (const file of files) {
+    fs.unlinkSync(path.join(sourceHeaderFolder, file));
+  }
+
   const headers = new AdmZip(path.join(sourceHeaderFolder, "Headers.zip"));
 
   headers.extractAllTo(targetHeaderFolder, true);

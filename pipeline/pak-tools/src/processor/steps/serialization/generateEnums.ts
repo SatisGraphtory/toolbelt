@@ -45,7 +45,7 @@ const generateEnums = (
     lineEntries.push(formatEntry(name as string, maxValue++, false, true));
   }
 
-  console.log(desiredName, "had " + numNewEnums, " new enums")
+  console.log(desiredName, "had", numNewEnums, "new enums")
 
   return {
     text: `export enum ${desiredName} {\n${lineEntries.join('\n')}\n}`,

@@ -27,14 +27,10 @@ export class UExports {
   }
 
   async initialize() {
-    // if (this.pakVersion > PakVersion.PakFileVersionFrozenIndex) {
-    //   await this.reader.readBytes(3);
-    // }
-
     this.propertyList = await readFPropertyTagLoop(this.reader, this.asset);
 
     if (this.readGuid && (await this.reader.read(UInt32)) !== 0) {
-      if (this.reader.position + 16 <= this.reader.getSize()) {
+      if (this.reader.position + BigInt(16) <= this.reader.getSize()) {
         this.guid = await this.reader.read(FGuid);
       }
     }

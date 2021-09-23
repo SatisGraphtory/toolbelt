@@ -253,10 +253,10 @@ function tokenize(input: string): { remainingString: string, charactersRead: num
           readChars += match[0].length;
 
           foundKey = false;
-        } else if (/^[A-Za-z_]+'"\/((Game)|(Script))\/FactoryGame(([A-Za-z\/_0-9\-]+)\.)?([A-Za-z_0-9.\-]+):([A-Za-z_0-9.\-]+)"'/.test(iterativeInput)) {
+        } else if (/^[A-Za-z0-9_]+'"\/((Game)|(Script))\/FactoryGame(([A-Za-z\/_0-9\-]+)\.)?([A-Za-z_0-9.\-]+):([A-Za-z_0-9.\-]+)"'/.test(iterativeInput)) {
 
           // weird generic template type with variable at the end
-          const match = iterativeInput.match(/^[A-Za-z_]+'"\/((Game)|(Script))\/FactoryGame(([A-Za-z\/_0-9\-]+)\.)?([A-Za-z_0-9.\-]+):([A-Za-z_0-9.\-]+)"'/);
+          const match = iterativeInput.match(/^[A-Za-z0-9_]+'"\/((Game)|(Script))\/FactoryGame(([A-Za-z\/_0-9\-]+)\.)?([A-Za-z_0-9.\-]+):([A-Za-z_0-9.\-]+)"'/);
           if (!match) throw new Error("No match for " + iterativeInput);
           value = match[7];
           // match[4/5] is like 	/Buildable/Factory/Train/Station/Build_TrainDockingStation.
@@ -266,10 +266,10 @@ function tokenize(input: string): { remainingString: string, charactersRead: num
           readChars += match[0].length;
 
           foundKey = false;
-        } else if (/^[A-Za-z_]+'"\/((Game)|(Script))\/FactoryGame(([A-Za-z\/_0-9\-]+)\.)?([A-Za-z_0-9.\-]+)"'/.test(iterativeInput)) {
+        } else if (/^[A-Za-z0-9_]+'"\/((Game)|(Script))\/FactoryGame(([A-Za-z\/_0-9\-]+)\.)?([A-Za-z_0-9.\-]+)"'/.test(iterativeInput)) {
 
           // weird generic template type
-          const match = iterativeInput.match(/^[A-Za-z_]+'"\/((Game)|(Script))\/FactoryGame(([A-Za-z\/_0-9\-]+)\.)?([A-Za-z_0-9.\-]+)"'/);
+          const match = iterativeInput.match(/^[A-Za-z0-9_]+'"\/((Game)|(Script))\/FactoryGame(([A-Za-z\/_0-9\-]+)\.)?([A-Za-z_0-9.\-]+)"'/);
           if (!match) throw new Error("No match for " + iterativeInput);
           value = match[6];
           iterativeInput = iterativeInput.slice(match[0].length);
@@ -297,21 +297,27 @@ function tokenize(input: string): { remainingString: string, charactersRead: num
           value = value === 'True'
           foundKey = false;
         } else {
-          const match = iterativeInput.match(/^([A-Za-z_]+)/);
+          const match = iterativeInput.match(/^([A-Za-z0-9_]+)/);
           if (!match) {
             throw new Error("Could not find match for value:" + iterativeInput)
           }
 
           const matchedString = match[1];
           if (!enumMap.has(matchedString)) {
-            throw new Error("Is not an enum: " + iterativeInput)
+            // throw new Error("Is not an enum: " + iterativeInput)
+            // Treat as literal
+            value = matchedString
+            iterativeInput = iterativeInput.slice(match[0].length);
+            readChars += match[0].length;
+
+            foundKey = false;
+          }  else {
+            value = enumMap.get(matchedString)!
+            iterativeInput = iterativeInput.slice(match[0].length);
+            readChars += match[0].length;
+
+            foundKey = false;
           }
-
-          value = enumMap.get(matchedString)!
-          iterativeInput = iterativeInput.slice(match[0].length);
-          readChars += match[0].length;
-
-          foundKey = false;
         }
       } else {
         if (/^[A-Za-z_0-9]+=/.test(iterativeInput)) {

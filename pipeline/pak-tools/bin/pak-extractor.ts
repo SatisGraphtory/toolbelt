@@ -35,6 +35,7 @@ import createEnumRevision from "../src/processor/steps/serialization/generateEnu
 import {getAllImages} from "../src/processor/steps/images/getAllImages";
 import PakTranslator from "../src/processor/steps/localize/PakTranslator";
 import generateClassMap from "../src/processor/steps/classMap/generateClassMap";
+import {incompletelyReadStructProperties} from "../src/pak/structs/UScript/UscriptStruct";
 
 const DEFAULT_INSTALL_DIR = '/mnt/a/Games/Epic/SatisfactoryExperimental';
 
@@ -63,23 +64,26 @@ async function main() {
   const existingFiles = glob.sync(cachedPakMetadataBaseString + '*');
   fs.mkdirSync("./dumps", { recursive: true })
 
-  if (fs.existsSync(cachedPakMetadata)) {
-    pakFile = deserialize(PakFile, fs.readFileSync(cachedPakMetadata, 'utf8'));
-    pakFile.optimizeLoadFromFile(reader);
-  } else {
-    // Delete old files
-    if (existingFiles) {
-      for (const file of existingFiles) {
-        fs.unlinkSync(file);
-      }
-    }
+  // if (fs.existsSync(cachedPakMetadata)) {
+  //   pakFile = deserialize(PakFile, fs.readFileSync(cachedPakMetadata, 'utf8'));
+  //   pakFile.optimizeLoadFromFile(reader);
+  // } else {
+  //   // Delete old files
+  //   if (existingFiles) {
+  //     for (const file of existingFiles) {
+  //       fs.unlinkSync(file);
+  //     }
+  //   }
+  //
+  //   pakFile = new PakFile(reader);
+  //   await pakFile.initialize();
+  //
+  //   let serializedPak = serialize(pakFile);
+  //   fs.writeFileSync(cachedPakMetadata, serializedPak);
+  // }
 
-    pakFile = new PakFile(reader);
-    await pakFile.initialize();
-
-    let serializedPak = serialize(pakFile);
-    fs.writeFileSync(cachedPakMetadata, serializedPak);
-  }
+  pakFile = new PakFile(reader);
+  await pakFile.initialize();
 
   console.log("Finished loading PakFile")
 
@@ -119,9 +123,31 @@ async function main() {
     return mapEntry.sourceString
   }))
 
+  function orderedObject (unordered: any) {
+    return Object.keys(unordered).sort().reduce(
+      (obj, key) => {
+        obj[key] = unordered[key];
+        return obj;
+      },
+      {} as Record<string, any>
+    );
+  }
+
   function replacer(key: string, value: any) {
     if(value instanceof Map) {
-        return Object.fromEntries(value)
+        return orderedObject(Object.fromEntries(value))
+    } else if (Array.isArray(value)) {
+      if (value.length) {
+        if (typeof value[0] === "string") {
+          return value.sort()
+        } else if (typeof value[0] === "bigint" || typeof value[0] === "number") {
+          return value.sort((a: any, b: any) => {
+            return a - b;
+          })
+        }
+      }
+    } else if (typeof value === 'object' && value !== null) {
+      return orderedObject(value);
     } else if ( typeof value === 'bigint') {
       return Number(value)
     } else {
@@ -319,11 +345,11 @@ async function main() {
     fs.writeFileSync(enumsPath, enumText);
   }
 
+  console.log("The following struct properties were not completely read:\n", incompletelyReadStructProperties);
+
   // ====================================================================================
   /* The above section needs a LOT of help in terms of not hand jamming in the future. */
   // ************************************************************************************
-
-
 
   // Write compressed data files
   fs.mkdirSync(paths.dataWarehouse.mainCompressed, { recursive: true });

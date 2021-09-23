@@ -3,7 +3,9 @@ import * as dxtJs from '../dxtjs/dxt';
 
 import {Shape} from "../../../util/parsers";
 import {FTexture2DMipMap} from "../../structs/texture/FTexture2DMipMap";
+import consoleInspect from "../../../util/consoleInspect";
 
+import * as fs from 'fs';
 
 const PNG = require('pngjs').PNG;
 
@@ -20,6 +22,8 @@ export class ImageExporter {
     const png = new PNG({width, height, inputHasAlpha: true});
     // set the data to the buffer
     png.data = buffer;
+
+    fs.writeFileSync("demonig.png", PNG.sync.write(png));
 
     // return the PNG buffer
     return PNG.sync.write(png);
@@ -55,7 +59,6 @@ export class ImageExporter {
         rgbData[i] = rgbData[i + 2];
         rgbData[i + 2] = tmp;
       }
-
     }
 
     return ImageExporter.toPNG(tex.sizeX, tex.sizeY, rgbData);

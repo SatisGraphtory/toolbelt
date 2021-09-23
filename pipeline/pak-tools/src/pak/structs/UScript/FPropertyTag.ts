@@ -19,6 +19,7 @@ import {InterfaceProperty} from "./properties/InterfaceProperty";
 import {ByteProperty, BytePropertyTagMetaData} from "./properties/ByteProperty";
 import {SetProperty, SetPropertyTagMetaData} from "./properties/SetProperty";
 import {FieldPathProperty} from "./properties/FieldPathProperty";
+import {MulticastDelegateProperty} from "./properties/MulticastSparseDelegateProperty";
 
 export type TagMetaData =
   | Shape<typeof StructPropertyTagMetaData>
@@ -106,10 +107,11 @@ export function FPropertyTag(asset: UAsset, shouldRead: boolean, depth: number) 
     let fullyRead = true;
 
     if (shouldRead && baseTag.size > 0) {
+      const currentPos = reader.position;
       reader.trackReads();
       tag = await reader.read(Tag(asset, baseTag.propertyType, tagMetaData as TagMetaData, depth + 1, baseTag.size, reader));
 
-      if (reader.getTrackedBytesRead() !== baseTag.size) {
+      if (reader.getTrackedBytesRead() !== BigInt(baseTag.size)) {
         console.error(
           `${baseTag.name} (${
             baseTag.propertyType
@@ -120,12 +122,10 @@ export function FPropertyTag(asset: UAsset, shouldRead: boolean, depth: number) 
 
         if (reader.getTrackedBytesRead() > baseTag.size) {
           throw new Error('More bytes were read than available!');
-        } else {
-          await reader.readBytes(baseTag.size - reader.getTrackedBytesRead());
         }
       }
-
       reader.untrackReads();
+      await reader.seekTo(currentPos + BigInt(baseTag.size));
     }
 
     // Swap the meta and the data fields for boolean
@@ -143,6 +143,9 @@ export function FPropertyTag(asset: UAsset, shouldRead: boolean, depth: number) 
     };
   };
 }
+
+const incompletelyReadPropertiesSet = new Set<string>();
+export const incompletelyReadProperties = [] as string[]
 
 export function Tag(asset: UAsset, propertyType: string, tagMetaData: TagMetaData, depth: number, readSize: number, trackingReader: Reader) {
   return async function (reader: Reader) {
@@ -225,7 +228,7 @@ export function Tag(asset: UAsset, propertyType: string, tagMetaData: TagMetaDat
     } else if (propertyType === 'MulticastDelegateProperty') {
       tag = await reader.read(Int32);
     } else if (propertyType === 'MulticastSparseDelegateProperty') {
-      tag = null;
+      tag = await reader.read(MulticastDelegateProperty(asset.names, asset.imports, asset.exports, readSize))
     } else if (propertyType === 'FieldPathProperty') {
       tag = await reader.read(FieldPathProperty(asset.names));
     } else {
@@ -244,6 +247,7 @@ export async function readFPropertyTagLoop(reader: Reader, asset: UAsset): Promi
     if (!property) {
       break;
     }
+
     propertyList.push(property);
   }
 

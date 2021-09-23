@@ -40,6 +40,7 @@ import {FMaterialAttributesInput} from "./UScriptStrutTypes/FMaterialAttributesI
 import {FMovieSceneFloatChannel} from "./UScriptStrutTypes/FMovieSceneFloatChannel";
 import {FieldPathProperty} from "./properties/FieldPathProperty";
 import {FMovieSceneFloatValue} from "./UScriptStrutTypes/FMovieSceneFloatValue ";
+import {FMovieSceneEvaluationFieldEntityTree} from "./UScriptStrutTypes/Objects/MovieScene/Evaluation/FMovieSceneEvaluationFieldEntityTree";
 
 const MAX_RECURSION_DEPTH = 50;
 
@@ -83,8 +84,6 @@ export function UScriptStruct(
 
     if (tagMetaData) {
       switch (tagMetaData.structName) {
-
-
         // https://github.com/iAmAsval/FModel/blob/841e76d2d7fedffd89ce11fcb1d924a3eaeac4ca/FModel/PakReader/Parsers/PropertyTagData/ByteProperty.cs
         case "ByteProperty":
           tag = await reader.read(UInt32);
@@ -232,111 +231,40 @@ export function UScriptStruct(
         case 'FieldPathProperty':
           tag = await reader.read(FieldPathProperty(asset.names));
           break;
-
+        case 'MovieSceneEvaluationFieldEntityTree':
+          tag = await reader.read(FMovieSceneEvaluationFieldEntityTree);
+          break;
+        case 'MovieSceneEntityComponentField':
+        case 'MovieSceneSequenceID':
+        case 'MovieSceneEvaluationFieldTrackPtr':
+        case 'MovieSceneFieldEntry_EvaluationTrack':
+        case 'MovieSceneEvaluationGroup':
+        case 'MovieSceneEvaluationMetaData':
+        case 'MovieSceneEvaluationField':
+        case 'EventPayload':
+        case 'MovieSceneEventSectionData':
+        case 'FrameNumberRangeBound':
+        case 'FrameNumberRange':
+        case 'MovieSceneTrackEvaluationFieldEntry':
+        case 'MovieSceneTrackEvaluationField':
+        case 'ScalarParameterNameAndCurve':
+        case 'MovieSceneEventPtrs':
+        case 'MovieSceneEvent':
+        case 'MovieSceneEventChannel':
+        case 'ExposedValueHandler':
+        case 'PropertyAccessSegment':
+        case 'PropertyAccessLibrary':
+        case 'SkeletalMeshLODInfo':
+        case 'SkeletalMeshSamplingLODBuiltData':
+        case 'SkeletalMeshSamplingBuiltData':
+        case 'SkeletalMeshSamplingInfo':
+          break;
         // TODO: fix these
-        // Whitelisted fallback entries.
-        // case 'BodyInstance':
-        // case 'CollisionResponse':
-        // case 'ResponseChannel':
-        // case 'SlateBrush':
-        // case 'ItemView':
-        // case 'ItemAmount':
-        // case 'PointerToUberGraphFrame':
-        // case 'ParticleMap':
-        // case 'PoleHeightMesh':
-        // case 'SingleAnimationPlayData':
-        // case 'TimerHandle':
-        // case 'FactoryTickFunction':
-        // case 'ActorTickFunction':
-        // case 'BlueprintComponentDelegateBinding':
-        // case 'RichCurve':
-        // case 'TTFloatTrack':
-        // case 'FoundationSideSelectionFlags':
-        // case 'SplitterSortRule':
-        // case 'ActorComponentTickFunction':
-        // case 'ComponentOverrideRecord':
-        // case 'ComponentKey':
-        // case 'BlueprintCookedComponentInstancingData':
-        // case 'SplineCurves':
-        // case 'InterpCurveVector':
-        // case 'InterpCurvePointVector':
-        // case 'InterpCurveFloat':
-        // case 'InterpCurvePointFloat':
-        // case 'StringPair':
-        // case 'BPVariableMetaDataEntry':
-        // case 'PostProcessSettings':
-        // case 'WeightedBlendables':
-        // case 'WeightedBlendable':
-        // case 'MaterialFunctionInfo':
-        // case 'KAggregateGeom':
-        // case 'KBoxElem':
-        // case 'StaticMaterial':
-        // case 'MeshUVChannelInfo':
-        // case 'BoxSphereBounds':
-        // case 'FontImportOptionsData':
-        // case 'KConvexElem':
-        // case 'Transform':
-        // case 'ScalarParameterValue':
-        // case 'MaterialParameterInfo':
-        // case 'MaterialInstanceBasePropertyOverrides':
-        // case 'SoundConcurrencySettings':
-        // case 'CompositeFont':
-        // case 'Typeface':
-        // case 'TypefaceEntry':
-        // case 'KSphereElem':
-        // case 'SoundClassProperties':
-        // case 'TouchInputControl':
-        // case 'Key':
-        // case 'PaperTerrainMaterialRule':
-        // case 'LightmassMaterialInterfaceSettings':
-        // case 'DistanceBasedTickRate':
-        // case 'SchematicMessagePair':
-        // case 'ItemFoundData':
-        // case 'ResearchTreeMessageData':
-        // case 'TutorialHintData':
-        // case 'RecipeAmountPair':
-        // case 'CollectionScalarParameter':
-        // case 'CollectionVectorParameter':
-        // case 'Margin':
-        // case 'ButtonStyle':
-        // case 'SlateColor':
-        // case 'AnchorData':
-        // case 'Anchors':
-        // case 'SlateChildSize':
-        // case 'WidgetTransform':
-        // case 'MovieScenePossessable':
-        // case 'MovieSceneBinding':
-        // case 'FrameRate':
-        // case 'ResourceDepositPackage':
-        // case 'Int32Interval':
-        //   return await reader.read(FStructFallback(asset));
-
 
         // This is a custom class, there will be more. :(
         case 'InventoryItem':
           tag = await reader.read(InventoryItem(asset));
           break;
-
-        // case 'FontCharacter':
-        // case 'FontData':
-        // case 'MovieSceneFloatChannel':
-        // case 'ScalarMaterialInput':
-        // case 'MaterialAttributesInput':
-
-        // Nothing but trouble. Should oen day try to parse these? Maybe?
-        case 'EventPayload': //Possibly Size 371, so an array of things + a name?
-        case 'MovieSceneEventSectionData': //possibly size 510
-        case 'MovieSceneEventPtrs': // 70 bytes
-        case 'MovieSceneEvent': // 180
-        case 'SkeletalMeshSamplingLODBuiltData': // there's something for this but it's unfinished
-        case 'LevelSequenceBindingReferences':
-          return null;
-        // case 'MovieSceneParticleChannel':
-        // case 'RawCurveTracks':
-        // case 'SmartName':
-        // case 'FloatCurve':
-        // // https://github.com/EpicGames/UnrealEngine/blob/4.22/Engine/Source/Runtime/MovieScene/Public/Channels/MovieSceneFloatChannel.h#L299
-        // return null;
         case 'StructProperty': // We want to use the default reader to fully read struct properties.
         default:
           let possibleProperties = null;
@@ -362,7 +290,7 @@ export function UScriptStruct(
             console.log("Dumped Tag MetaData:", tagMetaData)
             console.log(ConsoleColor.FgRed, "Unsuccessful (errored) full read of:", structName, e, ConsoleColor.Reset);
             incompletelyReadStructProperties.add(structName);
-            process.exit(1);
+            // process.exit(1);
           }
 
           return possibleProperties;
