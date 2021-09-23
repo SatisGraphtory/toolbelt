@@ -75,11 +75,10 @@ async function copyDocs(sourceDocFolder = path.join(INSTALL_DIR, 'CommunityResou
 
 async function copyHeaders(sourceHeaderFolder = path.join(INSTALL_DIR, 'CommunityResources'),
                         targetHeaderFolder = path.join(paths.sourceData.headers)) {
-  console.log(path.join(sourceHeaderFolder, "Headers.zip"), targetHeaderFolder);
 
-  const files = fs.readdirSync(sourceHeaderFolder);
+  const files = fs.readdirSync(targetHeaderFolder);
   for (const file of files) {
-    fs.unlinkSync(path.join(sourceHeaderFolder, file));
+    fs.unlinkSync(path.join(targetHeaderFolder, file));
   }
 
   const headers = new AdmZip(path.join(sourceHeaderFolder, "Headers.zip"));
@@ -162,7 +161,7 @@ async function commitFiles() {
     additionalString = ' (Experimental)'
   }
 
-  console.log(execSync(`cd ${paths.sourceData.root}; git add Docs/* Headers* metadata.json; \
+  console.log(execSync(`cd ${paths.sourceData.root}; git add -A; \
       git commit -m "Build Version ${VERSION} (${SEMANTIC}) ${additionalString}"; \   
       git remote set-url origin https://${process.env.PAT}@github.com/SatisGraphtory/SourceData.git; \ 
       git push origin ${BRANCH}; git push;`).toString())
