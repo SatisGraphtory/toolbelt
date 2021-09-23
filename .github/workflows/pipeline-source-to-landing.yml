@@ -6,9 +6,6 @@ on:
       - master
       - experimental
   pull_request:
-    branches:
-      - master
-      - experimental
 
 jobs:
   setup:
