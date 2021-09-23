@@ -34,8 +34,8 @@ export function pretty(code: string) {
       ...prettierConfig,
       filepath: '<any>.ts',
     });
-  } catch (error) {
+  } catch (error: any) {
     process.stderr.write(`\n\n${code}\n\n`);
-    throw new Error(error.message);
+    throw new Error("Could not prettify" + error.message);
   }
 }

@@ -10,6 +10,7 @@
     "lib": ["ES2020", "dom"],
     "moduleResolution": "node",
     "noEmit": true,
+    "allowJs": false,
     "resolveJsonModule": true,
     "downlevelIteration": true
   },
