@@ -26,6 +26,8 @@ function replaceTopRef(schema: any) {
     delete schema["$ref"];
   }
 
+  delete schema["definitions"]; // save space
+
   return JSON.stringify(orderedObject(schema), null, 2);
 }
 
