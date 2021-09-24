@@ -6,16 +6,27 @@ import * as path from 'path';
 import * as TJS from 'typescript-json-schema';
 parseAll();
 
-function shallowClone(sourceDict: Record<string, any>) {
-  const returnDict: Record<string, any> = {};
-  const blacklistedAttribute = new Set(['$schema', 'definitions']);
-  Object.keys(sourceDict).forEach(key => {
-    if (!blacklistedAttribute.has(key)) {
-      returnDict[key] = sourceDict[key];
-    }
-  });
+function orderedObject (unordered: any) {
+  return Object.keys(unordered).sort().reduce(
+    (obj, key) => {
+      obj[key] = unordered[key];
+      return obj;
+    },
+    {} as Record<string, any>
+  );
+}
 
-  return returnDict;
+function replaceTopRef(schema: any) {
+  if (schema["$ref"]) {
+    const actualRef = schema["$ref"].replace("#/definitions/", "");
+    for (const [key, val] of Object.entries(schema.definitions[actualRef])) {
+      schema[key] = val;
+    }
+
+    delete schema["$ref"];
+  }
+
+  return JSON.stringify(orderedObject(schema), null, 2);
 }
 
 function parseAll(sourceDir = paths.dataLanding.interfaces, destDir = paths.dataLanding.json) {
@@ -28,15 +39,15 @@ function parseAll(sourceDir = paths.dataLanding.interfaces, destDir = paths.data
 
   const nativeGlobExpression = `${sourceDir}/**/native/*.ts`;
 
-  // optionally pass argument to schema generator
   const settings: TJS.PartialArgs = {
     required: true,
   };
 
-  // optionally pass ts compiler options
+// optionally pass ts compiler options
   const compilerOptions: TJS.CompilerOptions = {
-    strictNullChecks: true,
+    refs: false,
   };
+
 
   const program = TJS.getProgramFromFiles(glob.sync(globExpression), compilerOptions)!;
   const generator = TJS.buildGenerator(program, settings)!;
@@ -53,6 +64,7 @@ function parseAll(sourceDir = paths.dataLanding.interfaces, destDir = paths.data
       path.basename(portedPath).replace(/\.ts$/g, '.json'),
     );
 
+
     const fullPath = path.join(destDir, newFilePath);
     if (!filesByDir.has(path.dirname(fullPath))) {
       fs.mkdirSync(path.dirname(fullPath), { recursive: true });
@@ -60,12 +72,11 @@ function parseAll(sourceDir = paths.dataLanding.interfaces, destDir = paths.data
     }
     filesByDir.get(path.dirname(fullPath))!.push(newFilePath);
 
-    const schema = generator.getSchemaForSymbol(path.basename(portedPath).replace(/\.ts$/g, ''));
+    const schema = generator.getSchemaForSymbol(path.basename(portedPath).replace(/\.ts$/g, '')) as any;
 
-    const schemaString = JSON.stringify(shallowClone(schema), null, 2);
 
     process.stderr.write(`\u001b[2Kconverting: ${fullPath}\r`);
-    fs.writeFileSync(fullPath, schemaString);
+    fs.writeFileSync(fullPath, replaceTopRef(schema));
   }
 
   for (const parentDir of filesByDir.keys()) {
@@ -103,7 +114,6 @@ function parseAll(sourceDir = paths.dataLanding.interfaces, destDir = paths.data
     const newPath = path.join(nativeDir, `${symbol}.json`);
     try {
       const schema = generator.getSchemaForSymbol(symbol);
-      const schemaString = JSON.stringify(shallowClone(schema), null, 2);
 
       nativeIndexLines.push(
         `import ${path.parse(newPath).name} from './${path.basename(
@@ -112,7 +122,7 @@ function parseAll(sourceDir = paths.dataLanding.interfaces, destDir = paths.data
       );
 
       process.stderr.write(`\u001b[2Kconverting: ${newPath}\r`);
-      fs.writeFileSync(newPath, schemaString);
+      fs.writeFileSync(newPath, replaceTopRef(schema));
     } catch (e) {
       process.stderr.write(`\u001b[2Kfailure writing: ${newPath}\r`);
     }
