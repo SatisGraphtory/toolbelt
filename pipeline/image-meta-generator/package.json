@@ -12,13 +12,13 @@
     "metagen": "./node_modules/.bin/ts-node ./bin/image-metagen.ts"
   },
   "devDependencies": {
-    "chokidar-cli": "^2.1.0",
+    "chokidar-cli": "^3.0.0",
     "codacy-coverage": "^3.4.0",
     "codeclimate-test-reporter": "^0.5.0",
     "coveralls": "^3.0.0",
-    "mocha": "^8.2.1",
+    "mocha": "^9.1.2",
     "mocha-lcov-reporter": "^1.2.0",
-    "mock-fs": "^4.0.0",
+    "mock-fs": "^5.1.1",
     "nyc": "^15.1.0",
     "standard": "^16.0.1",
     "standard-json": "^1.0.2"
@@ -31,6 +31,6 @@
     "js-beautify": "^1.14.0",
     "lodash": "^4.17.21",
     "recursive-readdir": "^2.1.1",
-    "ts-node": "^9.0.0"
+    "ts-node": "^10.2.1"
   }
 }
