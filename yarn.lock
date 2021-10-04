@@ -618,10 +618,10 @@
   resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.173.tgz#9d3b674c67a26cf673756f6aca7b429f237f91ed"
   integrity sha512-vv0CAYoaEjCw/mLy96GBTnRoZrSxkGE0BKzKimdR8P3OzrNYNvBgtW7p055A+E8C31vXNUhWKoFCbhq7gbyhFg==
 
-"@types/luxon@^2.0.3":
-  version "2.0.3"
-  resolved "https://registry.yarnpkg.com/@types/luxon/-/luxon-2.0.3.tgz#03de7fa45451bffe9978700dca85fd6f242ef961"
-  integrity sha512-qhyivlWLuSnQa6EMx7W2oPiMUD4/F9BLuQynZe3jBgmfCS6Xr+Ock1+ZotN6xEkdJvdckyX+z1r5fyvi31GV5Q==
+"@types/luxon@^2.0.4":
+  version "2.0.4"
+  resolved "https://registry.yarnpkg.com/@types/luxon/-/luxon-2.0.4.tgz#f7b5a86ccd843c0ccaddfaedd9ee1081bc1cde3b"
+  integrity sha512-l3xuhmyF2kBldy15SeY6d6HbK2BacEcSK1qTF1ISPtPHr29JH0C1fndz9ExXLKpGl0J6pZi+dGp1i5xesMt60Q==
 
 "@types/minimatch@*":
   version "3.0.3"
@@ -929,7 +929,7 @@ base64-js@^1.3.1:
   resolved "https://registry.yarnpkg.com/base64-js/-/base64-js-1.3.1.tgz#58ece8cb75dd07e71ed08c736abc5fac4dbf8df1"
   integrity sha512-mLQ4i2QO1ytvGWFWmcngKO//JXAQueZvwEKtjgQFM4jIK0kU+ytMfplL8j+n5mspOfjHwoAg+9yhb7BwAHm36g==
 
-batch-cluster@^7.1.0:
+batch-cluster@^7.2.1:
   version "7.2.1"
   resolved "https://registry.yarnpkg.com/batch-cluster/-/batch-cluster-7.2.1.tgz#1c4a8498d7fbb08f4ee454c18b9cf0d36b32f86b"
   integrity sha512-EPeA7fM9+nX31DExN5FaB6eijT3gPlLhUt7xcaRq4c1iEmvaX6LX2svYJbOGc3jtV2g8/Fi45B5sYOwBfvE/XA==
@@ -1998,28 +1998,28 @@ exif-parser@^0.1.12:
   resolved "https://registry.yarnpkg.com/exif-parser/-/exif-parser-0.1.12.tgz#58a9d2d72c02c1f6f02a0ef4a9166272b7760922"
   integrity sha1-WKnS1ywCwfbwKg70qRZicrd2CSI=
 
-exiftool-vendored.exe@12.30.0:
-  version "12.30.0"
-  resolved "https://registry.yarnpkg.com/exiftool-vendored.exe/-/exiftool-vendored.exe-12.30.0.tgz#473a2e5a92b1abe2938fa0796966c0578865bab5"
-  integrity sha512-h/ufiC09lB71pts3w52vU1FV+UHWqoabDGE6mTRXbNEHMJnULdamR3FTXHq8EOauYuCDllH+8PjLzMioyaV1gA==
+exiftool-vendored.exe@12.31.0:
+  version "12.31.0"
+  resolved "https://registry.yarnpkg.com/exiftool-vendored.exe/-/exiftool-vendored.exe-12.31.0.tgz#ef740e6ea44eff467a80ccd88f7e245715ccc17d"
+  integrity sha512-7ndV7zCOjo2BxQ6Hpjh6nvLnBQUWyyQvrVESSzcqSeXrLU60fSzv4k8VPQbmQ3vMDaZMVxXX+mtJMbe9Hx4b6w==
 
-exiftool-vendored.pl@12.30.0:
-  version "12.30.0"
-  resolved "https://registry.yarnpkg.com/exiftool-vendored.pl/-/exiftool-vendored.pl-12.30.0.tgz#d7dde5683e5a04d54977f61f8488e171ee2d3d44"
-  integrity sha512-KIskcrDj+YOYcPrBVjuq/iy2BPYAzRk6SLmzgVsnVQ/YeN9tyWU67jNu+qLaDUaz7LbcurxF6ssltij5aBkIDg==
+exiftool-vendored.pl@12.31.0:
+  version "12.31.0"
+  resolved "https://registry.yarnpkg.com/exiftool-vendored.pl/-/exiftool-vendored.pl-12.31.0.tgz#a8f813ab68f5b983b7edd3a1f53dd73cb7fefe91"
+  integrity sha512-dxmTa08n+ZOawWfMYU7c0XtHGGtc7hqCpJz+LncThu0uHBARJ72N56wCxvvpHaBpaQ0zyhYK2kQluxhOSzTYqQ==
 
-exiftool-vendored@^15.3.0:
-  version "15.3.0"
-  resolved "https://registry.yarnpkg.com/exiftool-vendored/-/exiftool-vendored-15.3.0.tgz#6653f95eeee94d57c9536d81bf083e99988fec26"
-  integrity sha512-7GFcXjHBU/rFOQgliO8ca/OmF8kVTu8B73PnTQ3IUQSZ+eFxo+XhE4Mbwdelw/FnLhk8hSZ+rfo1/pEpLgyNVQ==
+exiftool-vendored@^15.4.0:
+  version "15.4.0"
+  resolved "https://registry.yarnpkg.com/exiftool-vendored/-/exiftool-vendored-15.4.0.tgz#9314a32c26c0ef78ccc79fe0c383c3bfa041da5e"
+  integrity sha512-WczGXYYpQgu2DRsEb0NiDjIixLTvp7QJBMqAhq5/2HM6PwIfz+lTP1o73To4My//6HqSVTpZ9y6QIMy40h9hHg==
   dependencies:
-    batch-cluster "^7.1.0"
+    batch-cluster "^7.2.1"
     he "^1.2.0"
     luxon "^2.0.2"
     tz-lookup "^6.1.25"
   optionalDependencies:
-    exiftool-vendored.exe "12.30.0"
-    exiftool-vendored.pl "12.30.0"
+    exiftool-vendored.exe "12.31.0"
+    exiftool-vendored.pl "12.31.0"
 
 expand-template@^2.0.3:
   version "2.0.3"
